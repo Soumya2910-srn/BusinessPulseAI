@@ -1,0 +1,31 @@
+# BusinessPulse AI - Dependencies
+# Web Framework & Extensions
+Flask>=3.0.0
+Flask-SQLAlchemy>=3.1.0
+Flask-WTF>=1.2.0
+Flask-Mail>=0.10.0
+WTForms>=3.1.0
+Werkzeug>=3.0.0
+email-validator>=2.1.0
+
+# Database & Connectors
+PyMySQL>=1.1.0
+cryptography>=42.0.0
+
+# Data Processing & Analysis
+pandas>=2.1.0
+openpyxl>=3.1.0
+
+# AI, RAG & LLM
+langchain>=0.2.0
+langchain-core>=0.2.0
+langchain-community>=0.2.0
+langchain-text-splitters>=0.2.0
+langchain-google-genai>=1.0.0
+langchain-huggingface>=0.0.3
+sentence-transformers>=3.0.0
+faiss-cpu>=1.8.0
+
+# Environment Configuration
+python-dotenv>=1.0.0
+
