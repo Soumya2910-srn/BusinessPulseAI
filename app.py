@@ -114,6 +114,19 @@ def login_required(f):
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated
+def admin_required(f):
+    """Allow only admin users; redirect others with an error."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if 'user_id' not in session:
+            flash('Please login to access this page.', 'error')
+            return redirect(url_for('login'))
+        user = User.query.get(session['user_id'])
+        if not user or user.role != 'admin':
+            flash('Access denied. Admin privileges required.', 'error')
+            return redirect(url_for('dashboard'))
+        return f(*args, **kwargs)
+    return decorated
 
 # Auth Routes 
 
@@ -217,6 +230,83 @@ def login():
             flash(f"{error}", 'error')
 
     return render_template("login.html", form=form)
+@app.route('/verify_otp', methods=['GET', 'POST'])
+def verify_otp():
+    if 'user_id' in session:
+        return redirect(url_for('dashboard'))
+
+    if request.method == 'GET':
+        if 'otp' not in session and 'signup_data' not in session and 'login_data' not in session:
+            return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        entered_otp = request.form.get('otp', '').strip()
+
+        # Check if OTP expired (90 seconds)
+        otp_time = session.get('otp_time', 0)
+        if datetime.utcnow().timestamp() - otp_time > 90:
+            flash('OTP has expired. Please try again.', 'error')
+            is_signup = 'signup_data' in session
+            session.pop('otp', None)
+            session.pop('otp_time', None)
+            session.pop('signup_data', None)
+            session.pop('login_data', None)
+            session.pop('login_email', None)
+            return redirect(url_for('signup' if is_signup else 'login'))
+
+        if 'otp' in session and session['otp'] == entered_otp:
+            # Signup flow: create account and direct login
+            if 'signup_data' in session:
+                data = session.pop('signup_data')
+                is_first_user = User.query.count() == 0
+                new_user = User(
+                    username=data['username'],
+                    email=data['email'],
+                    password='',
+                    role='admin' if is_first_user else 'user'
+                )
+                db.session.add(new_user)
+                db.session.commit()
+                session.pop('otp', None)
+                session.pop('otp_time', None)
+                session.pop('login_data', None)
+                session.pop('login_email', None)
+
+                # Direct login on first-time account creation
+                session['user_id'] = new_user.id
+                session['username'] = new_user.username
+                return redirect(url_for('dashboard'))
+
+            # Login flow
+            elif 'login_data' in session:
+                data = session.pop('login_data')
+                session['user_id'] = data['user_id']
+                session['username'] = data['username']
+                session.pop('otp', None)
+                session.pop('otp_time', None)
+                session.pop('login_email', None)
+                return redirect(url_for('dashboard'))
+        else:
+            flash('Invalid OTP. Please check the 6-digit code and try again.', 'error')
+
+    return render_template('verify_otp.html')
+
+@app.route('/forgot_password', methods=['GET', 'POST'])
+def forgot_password():
+    flash('BusinessPulse AI uses passwordless OTP authentication. Enter your email to log in directly.', 'info')
+    return redirect(url_for('login'))
+
+@app.route('/reset_password', methods=['GET', 'POST'])
+def reset_password():
+    flash('BusinessPulse AI uses passwordless OTP authentication. Enter your email to log in directly.', 'info')
+    return redirect(url_for('login'))
+
+@app.route('/logout')
+def logout():
+    session.pop('user_id', None)
+    session.pop('username', None)
+    flash('Logged out successfully.', 'success')
+    return redirect(url_for('landingpage'))
 
 if __name__ == "__main__":
     app.run(debug=True)
