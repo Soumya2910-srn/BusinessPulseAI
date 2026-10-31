@@ -308,5 +308,74 @@ def logout():
     flash('Logged out successfully.', 'success')
     return redirect(url_for('landingpage'))
 
+@app.route('/profile', methods=['GET', 'POST'])
+@login_required
+def profile():
+    user_id = session.get('user_id')
+    user = User.query.get(user_id)
+    profile_form = ProfileUpdateForm(obj=user)
+
+    analysis_count = AnalysisHistory.query.filter_by(user_id=user_id).count()
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+
+        if action == 'update_profile' and profile_form.validate_on_submit():
+            new_username = profile_form.username.data
+            existing = User.query.filter(User.username == new_username, User.id != user_id).first()
+            if existing:
+                flash('That username is already taken.', 'error')
+            else:
+                user.username = new_username
+                db.session.commit()
+                session['username'] = new_username
+                flash('Profile updated successfully!', 'success')
+            return redirect(url_for('profile'))
+
+        # Flash validation errors
+        for field, errors in profile_form.errors.items():
+            for error in errors:
+                flash(f"{error}", 'error')
+
+    return render_template('profile.html', user=user, profile_form=profile_form,
+                           analysis_count=analysis_count)
+
+# Admin Routes 
+
+@app.route('/admin')
+@admin_required
+def admin_panel():
+    current_user = User.query.get(session['user_id'])
+    all_users = User.query.order_by(User.created_at.asc()).all()
+    user_stats = {}
+    for u in all_users:
+        user_stats[u.id] = AnalysisHistory.query.filter_by(user_id=u.id).count()
+    total_analyses = AnalysisHistory.query.count()
+    return render_template('admin.html', users=all_users, user_stats=user_stats,
+                           current_user=current_user, total_analyses=total_analyses)
+
+@app.route('/admin/toggle_role/<int:user_id>', methods=['POST'])
+@admin_required
+def toggle_role(user_id):
+    user = User.query.get_or_404(user_id)
+    # Prevent admin from demoting themselves
+    if user.id == session['user_id']:
+        return {'status': 'error', 'message': 'You cannot change your own role.'}, 400
+    user.role = 'user' if user.role == 'admin' else 'admin'
+    db.session.commit()
+    return {'status': 'success', 'new_role': user.role, 'message': f'Role updated to {user.role}.'}, 200
+
+@app.route('/admin/delete_user/<int:user_id>', methods=['POST'])
+@admin_required
+def admin_delete_user(user_id):
+    if user_id == session['user_id']:
+        return {'status': 'error', 'message': 'You cannot delete your own account.'}, 400
+    user = User.query.get_or_404(user_id)
+    # Delete user's history records too
+    AnalysisHistory.query.filter_by(user_id=user_id).delete()
+    db.session.delete(user)
+    db.session.commit()
+    return {'status': 'success', 'message': f'User {user.username} deleted successfully.'}, 200
+
 if __name__ == "__main__":
     app.run(debug=True)
