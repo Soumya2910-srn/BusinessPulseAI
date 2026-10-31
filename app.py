@@ -1,0 +1,176 @@
+from flask import Flask, redirect, url_for, render_template, flash, session, request
+from flask_sqlalchemy import SQLAlchemy
+from form import Login, Signup, ProfileUpdateForm
+import pymysql
+import os
+import json
+import random
+from datetime import datetime
+
+app = Flask(__name__)
+
+# Database connection setup
+# Attempts MySQL database connection; falls back to local SQLite if MySQL server is unavailable
+db_created = False
+try:
+    conn = pymysql.connect(host='localhost', user='root', password='1234', port=3306, connect_timeout=3)
+    cursor = conn.cursor()
+    cursor.execute("CREATE DATABASE IF NOT EXISTS businessdb")
+    cursor.close()
+    conn.close()
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:1234@localhost:3306/businessdb'
+    db_created = True
+except Exception as e:
+    print(f"MySQL connection unavailable ({e}). Using local SQLite database.")
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
+
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
+
+# Models 
+
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password = db.Column(db.String(200), nullable=True, default='')
+    role = db.Column(db.String(20), nullable=False, default='user')  # 'user' or 'admin'
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# Analysis History Model for saving generated visualizations
+class AnalysisHistory(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    prev_filename = db.Column(db.String(120), nullable=True)
+    curr_filename = db.Column(db.String(120), nullable=True)
+    prev_revenue = db.Column(db.Float, default=0.0)
+    curr_revenue = db.Column(db.Float, default=0.0)
+    revenue_growth = db.Column(db.Float, default=0.0)
+    units_growth = db.Column(db.Float, default=0.0)
+    customers_growth = db.Column(db.Float, default=0.0)
+    forecasted_revenue = db.Column(db.Float, default=0.0)
+    analytics_json = db.Column(db.Text, nullable=False)
+
+# Initialize Database
+with app.app_context():
+    db.create_all()
+
+# ─── Decorators ─────────────────────────────────────────────────────────────
+
+def login_required(f):
+    """Redirect unauthenticated users to the login page."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if 'user_id' not in session:
+            flash('Please login to access this page.', 'error')
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated
+
+# Auth Routes 
+
+@app.route('/')
+def landingpage():
+    if 'user_id' in session:
+        return redirect(url_for('dashboard'))
+    return render_template("landingpage.html")
+
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if 'user_id' in session:
+        return redirect(url_for('dashboard'))
+    form = Signup()
+    if form.validate_on_submit():
+        raw_email = form.email.data.strip()
+        try:
+            valid_info = validate_email(raw_email, check_deliverability=True)
+            email = valid_info.normalized
+        except EmailNotValidError:
+            flash('Please enter a valid email account.', 'error')
+            return render_template('signup.html', form=form)
+
+        existing_username = User.query.filter_by(username=form.username.data.strip()).first()
+        if existing_username:
+            flash('Username already exists. Please choose a different username.', 'error')
+            return render_template('signup.html', form=form)
+
+        existing_email = User.query.filter_by(email=email).first()
+        if existing_email:
+            flash('An account with this email already exists. Please sign in directly.', 'error')
+            return render_template('signup.html', form=form)
+
+        # Generate OTP
+        otp = str(random.randint(100000, 999999))
+        session['otp'] = otp
+        session['otp_time'] = datetime.utcnow().timestamp()
+        session['signup_data'] = {
+            'username': form.username.data.strip(),
+            'email': email
+        }
+        session.pop('login_data', None)
+        session.pop('login_email', None)
+
+        if send_otp_email(email, otp, subject='Verify your BusinessPulse AI Account'):
+            flash(f'An OTP has been sent to {email}. Please verify to complete account setup.', 'success')
+            return redirect(url_for('verify_otp'))
+        else:
+            flash('Unable to deliver OTP. Please enter a valid, active email account.', 'error')
+            session.pop('otp', None)
+            session.pop('signup_data', None)
+
+    # Flash form errors if any
+    for field, errors in form.errors.items():
+        for error in errors:
+            flash(f"{error}", 'error')
+
+    return render_template("signup.html", form=form)
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if 'user_id' in session:
+        return redirect(url_for('dashboard'))
+    form = Login()
+    if form.validate_on_submit():
+        raw_email = form.email.data.strip()
+        try:
+            valid_info = validate_email(raw_email, check_deliverability=True)
+            email = valid_info.normalized
+        except EmailNotValidError:
+            flash('Please enter a valid email account.', 'error')
+            return render_template('login.html', form=form)
+
+        user = User.query.filter_by(email=email).first()
+        if user:
+            # Generate OTP
+            otp = str(random.randint(100000, 999999))
+            session['otp'] = otp
+            session['otp_time'] = datetime.utcnow().timestamp()
+            session['login_data'] = {
+                'user_id': user.id,
+                'username': user.username
+            }
+            session['login_email'] = user.email
+            session.pop('signup_data', None)
+
+            if send_otp_email(user.email, otp, subject='Your BusinessPulse AI Login OTP'):
+                flash(f'Login OTP has been sent to {user.email}.', 'success')
+                return redirect(url_for('verify_otp'))
+            else:
+                flash('Unable to deliver OTP. Please enter a valid, active email account.', 'error')
+                session.pop('otp', None)
+                session.pop('login_data', None)
+                session.pop('login_email', None)
+        else:
+            flash('Account not found. Please enter a valid email account or create an account.', 'error')
+
+    # Flash form errors if any
+    for field, errors in form.errors.items():
+        for error in errors:
+            flash(f"{error}", 'error')
+
+    return render_template("login.html", form=form)
+
+if __name__ == "__main__":
+    app.run(debug=True)
