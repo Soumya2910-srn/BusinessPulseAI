@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - BusinessPulse AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Montserrat:wght@500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+    <script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.9.4/dist/dotlottie-wc.js" type="module"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+            background: linear-gradient(135deg, #e3f2fd 0%, #fff8e1 50%, #fce4ec 100%);
+            color: #1a1a2e;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+
+
+        .bg-dots {
+            background-image: radial-gradient(circle, #E91E9A18 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+
+        .auth-card {
+            background: #ffffff;
+            border: 1px solid #e5eaf5;
+            border-radius: 1.75rem;
+            box-shadow: 0 8px 40px rgba(233,30,154,0.08), 0 2px 8px rgba(0,0,0,0.04);
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 440px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.85rem 1.1rem;
+            border: 1.5px solid #e0e7f0;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            color: #1a1a2e;
+            background: #f8faff;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            outline: none;
+        }
+        .form-input:focus {
+            border-color: #E91E9A;
+            box-shadow: 0 0 0 3px rgba(233,30,154,0.12);
+            background: white;
+        }
+        .form-input::placeholder { color: #b0b8cc; }
+
+        .btn-submit {
+            width: 100%;
+            padding: 0.9rem;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #F5A623 0%, #E91E9A 100%);
+            color: white;
+            font-weight: 700;
+            font-size: 1rem;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(233,30,154,0.25);
+            transition: all 0.2s ease;
+        }
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 28px rgba(233,30,154,0.35);
+        }
+
+        /* ── Floating Navbar Wrapper ── */
+        .nav-outer {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            padding: 14px 20px 0;
+            pointer-events: none;
+        }
+        header {
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(28px) saturate(180%);
+            -webkit-backdrop-filter: blur(28px) saturate(180%);
+            border: 1.5px solid rgba(255, 255, 255, 0.75);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(41, 168, 227, 0.13), 0 2px 8px rgba(0,0,0,0.06);
+            position: relative;
+            pointer-events: all;
+            overflow: hidden;
+        }
+        header::before {
+            content: '';
+            position: absolute;
+            inset: 0; border-radius: 20px; padding: 1.5px;
+            background: linear-gradient(90deg, #29A8E3 0%, #9b59b6 40%, #E91E9A 70%, #F5A623 100%);
+            background-size: 200% auto;
+            animation: navBorderShimmer 4s linear infinite;
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+        @keyframes navBorderShimmer {
+            0%  { background-position: 0% center; }
+            100% { background-position: 200% center; }
+        }
+        .nav-link {
+            position: relative; font-size: 1.05rem; font-weight: 600;
+            color: #374151; padding: 0.5rem 1rem; border-radius: 8px;
+            transition: color 0.25s ease, background 0.25s ease;
+        }
+        .nav-link::after {
+            content: ''; position: absolute; bottom: -2px; left: 50%;
+            width: 0; height: 2px; border-radius: 2px;
+            background: linear-gradient(90deg, #29A8E3, #E91E9A);
+            transform: translateX(-50%); transition: width 0.3s ease;
+        }
+        .nav-link:hover { color: #1a1a2e; background: rgba(41,168,227,0.07); }
+        .nav-link:hover::after { width: 70%; }
+        .nav-btn-signin {
+            font-size: 0.95rem; font-weight: 600; color: #29A8E3;
+            padding: 0.55rem 1.4rem; border-radius: 50px;
+            border: 1.5px solid rgba(41,168,227,0.35); background: rgba(41,168,227,0.06);
+            transition: all 0.25s ease;
+        }
+        .nav-btn-signin:hover { background: rgba(41,168,227,0.14); border-color: rgba(41,168,227,0.6); transform: translateY(-1px); }
+        .nav-btn-primary {
+            font-size: 0.95rem; font-weight: 700; color: white;
+            padding: 0.55rem 1.6rem; border-radius: 50px;
+            background: linear-gradient(135deg, #29A8E3 0%, #9b59b6 50%, #E91E9A 100%);
+            background-size: 200% auto; box-shadow: 0 4px 18px rgba(41,168,227,0.38);
+            transition: all 0.3s ease; position: relative; overflow: hidden;
+        }
+        .nav-btn-primary:hover { background-position: right center; transform: translateY(-2px) scale(1.04); box-shadow: 0 10px 30px rgba(41,168,227,0.45); }
+        .logo-icon-wrap { transition: transform 0.3s ease; }
+        .logo-icon-wrap:hover { transform: rotate(-4deg) scale(1.1); }
+
+        .accent-bar { display: flex; gap: 6px; margin-bottom: 1.5rem; }
+        .accent-bar span { display: block; height: 4px; border-radius: 4px; flex: 1; }
+
+        .flash-msg {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        @keyframes slideInUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        #main-content { animation: slideInUp 0.5s ease both; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col relative">
+
+
+
+    <!-- Background -->
+    <div class="fixed inset-0 z-[-1] bg-dots opacity-60"></div>
+    <div class="fixed top-[-5%] left-[-5%] w-72 h-72 rounded-full z-[-1]" style="background:radial-gradient(circle,#F5A62318 0%,transparent 70%);"></div>
+    <div class="fixed bottom-[-5%] right-[-5%] w-72 h-72 rounded-full z-[-1]" style="background:radial-gradient(circle,#E91E9A15 0%,transparent 70%);"></div>
+
+    <div id="main-content" class="flex flex-col min-h-screen">
+        <!-- Navbar -->
+        <div class="nav-outer">
+            <header class="w-full max-w-7xl mx-auto">
+                <div class="flex items-center justify-between px-6 py-3">
+                    <a href="/" class="flex items-center gap-3" style="text-decoration:none;">
+                        <div class="logo-icon-wrap w-10 h-10 rounded-xl flex items-center justify-center" style="background: transparent;">
+                            <dotlottie-wc src="https://lottie.host/fa36fe97-9c23-41ed-96e5-d0e84bfd0565/OUv90FeqWK.json"
+                                style="width: 40px; height: 40px;" autoplay loop></dotlottie-wc>
+                        </div>
+                        <span class="text-lg font-bold tracking-tight font-sans" style="color:#1a1a2e;">
+                            BusinessPulse <span style="background:linear-gradient(90deg,#29A8E3,#E91E9A);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">AI</span>
+                        </span>
+                    </a>
+                    <nav class="hidden md:flex items-center gap-1">
+                        <a href="#features" class="nav-link">Features</a>
+                        <a href="#insights" class="nav-link">Insights</a>
+                        <a href="#pricing" class="nav-link">Pricing</a>
+                        <a href="#about" class="nav-link">About</a>
+                    </nav>
+                    <div class="flex items-center gap-2">
+                        {% if session.get('user_id') %}
+                        <a href="{{ url_for('dashboard') }}" class="nav-btn-primary flex items-center gap-2">
+                            <i data-lucide="layout-dashboard" style="width:15px;height:15px;"></i> Dashboard
+                        </a>
+                        <a href="{{ url_for('logout') }}" class="nav-link">Logout</a>
+                        {% else %}
+                        <a href="{{ url_for('login') }}" class="nav-btn-signin">Sign In</a>
+                        <a href="{{ url_for('signup') }}" class="nav-btn-primary flex items-center gap-2">
+                            Get Started <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </header>
+        </div>
+
+        <!-- Auth Content -->
+        <main class="flex-grow flex items-center justify-center px-4 py-10">
+            <div class="auth-card">
+                <!-- Accent Bar -->
+                <div class="accent-bar">
+                    <span style="background:#29A8E3;"></span>
+                    <span style="background:#F5A623;"></span>
+                    <span style="background:#E91E9A;"></span>
+                </div>
+
+                <div class="text-center mb-7">
+                    <div class="w-14 h-14 mx-auto mb-3 rounded-2xl flex items-center justify-center" style="background:linear-gradient(135deg,#F5A62322,#E91E9A22);border:1.5px solid #e0e7f0;">
+                        <i data-lucide="user-plus" class="w-7 h-7" style="color:#E91E9A;"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold font-serif mb-1" style="color:#1a1a2e;">Create Account</h1>
+                    <p class="text-sm text-gray-500">Join the BusinessPulse AI Platform</p>
+                </div>
+
+                <form action="{{ url_for('signup') }}" method="POST" novalidate class="space-y-4">
+                    {{ form.hidden_tag() }}
+
+                    <div>
+                        <label class="block text-sm font-semibold mb-1.5" style="color:#374151;" for="username">Username</label>
+                        {{ form.username(class="form-input", placeholder="e.g. janesmith", id="username") }}
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold mb-1.5" style="color:#374151;" for="email">Email Address</label>
+                        {{ form.email(class="form-input", placeholder="name@company.com", id="email") }}
+                    </div>
+
+                    <div class="p-3 rounded-xl bg-gradient-to-r from-blue-50/80 to-purple-50/80 border border-blue-100 flex items-center gap-2.5 text-xs text-gray-700">
+                        <i data-lucide="shield-check" class="w-4 h-4 text-[#29A8E3] flex-shrink-0"></i>
+                        <span><strong>Passwordless & Instant:</strong> We'll send a 6-digit OTP code to verify your email and sign you in immediately.</span>
+                    </div>
+
+                    <div class="pt-2">
+                        {{ form.submit(class="btn-submit", value="Create Account with OTP") }}
+                    </div>
+                </form>
+
+                <p class="mt-5 text-center text-sm text-gray-500">
+                    Already have an account?
+                    <a href="{{ url_for('login') }}" class="font-semibold" style="color:#29A8E3;">Sign In</a>
+                </p>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="py-5 text-center text-gray-400 text-xs border-t" style="border-color:#e8edf5;">
+            &copy; 2026 BusinessPulse AI. All rights reserved.
+        </footer>
+    </div>
+
+    <!-- Flash Messages -->
+    <div class="fixed bottom-6 right-6 z-50 flex flex-col gap-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="flash-msg px-5 py-4 flex items-center gap-3 border-l-4 {{ 'border-l-green-500' if category == 'success' else 'border-l-red-400' }}" style="animation:slideInUp 0.3s ease;">
+            <i data-lucide="info" class="w-4 h-4 {{ 'text-green-500' if category == 'success' else 'text-red-400' }}"></i>
+            <span class="text-sm font-medium text-gray-700">{{ message }}</span>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+    </script>
+    <style>
+        @keyframes bounce { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-10px);} }
+    </style>
+</body>
+</html>
