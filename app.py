@@ -605,7 +605,46 @@ def upload_datasets():
         'redirect_url': url_for('visualizations_page'),
         'analytics': analytics_data
     }, 200
-    @app.route('/visualizations')
+
+@app.route('/chat')
+@login_required
+def chat_page():
+    user_id = session.get('user_id')
+    user = User.query.get(user_id)
+    analytics = session.get('analytics')
+    if not analytics:
+        latest_record = AnalysisHistory.query.filter_by(user_id=user_id).order_by(AnalysisHistory.created_at.desc()).first()
+        if latest_record:
+            analytics = json.loads(latest_record.analytics_json)
+    return render_template("chat.html", user=user, analytics=analytics)
+
+@app.route('/api/chat', methods=['POST'])
+def api_chat():
+    if 'user_id' not in session:
+        return {'status': 'error', 'message': 'Unauthorized'}, 401
+    
+    data = request.get_json() or {}
+    message = data.get('message', '').strip()
+    if not message:
+        return {'status': 'error', 'message': 'Empty message'}, 400
+
+    user_id = session.get('user_id')
+    analytics = session.get('analytics')
+    if not analytics:
+        latest_record = AnalysisHistory.query.filter_by(user_id=user_id).order_by(AnalysisHistory.created_at.desc()).first()
+        if latest_record:
+            analytics = json.loads(latest_record.analytics_json)
+            
+    summary = analytics.get('summary', {}) if analytics else {}
+
+    # Call RAG Chatbot
+    try:
+        reply = get_rag_response(user_id, message, ml_summary=summary)
+        return {'status': 'success', 'response': reply}
+    except Exception as e:
+        return {'status': 'error', 'message': str(e)}, 500
+        
+@app.route('/visualizations')
 @login_required
 def visualizations_page():
     # Check if a specific history ID was requested
