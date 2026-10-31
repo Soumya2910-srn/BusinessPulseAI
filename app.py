@@ -1,14 +1,60 @@
 from flask import Flask, redirect, url_for, render_template, flash, session, request
 from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
 from form import Login, Signup, ProfileUpdateForm
 import pymysql
 import os
 import json
 import random
 from datetime import datetime
+from functools import wraps
+from dotenv import load_dotenv
+from rag_chat import build_vector_store, get_rag_response
+from flask_mail import Mail, Message
+from email_validator import validate_email, EmailNotValidError
 
+load_dotenv()
 app = Flask(__name__)
 
+@app.template_filter('inr_format')
+def inr_format(value):
+    try:
+        value = int(float(value))
+        s = str(value)
+        if len(s) <= 3:
+            return s
+        res = s[-3:]
+        s = s[:-3]
+        while len(s) > 2:
+            res = s[-2:] + "," + res
+            s = s[:-2]
+        res = s + "," + res
+        return res
+    except (ValueError, TypeError):
+        return value
+app.config['SECRET_KEY'] = '084c798ae26ad8bb088a191feb8224f772'
+app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+# Flask-Mail configuration
+app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
+app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'True') == 'True'
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+mail = Mail(app)
+
+def send_otp_email(to_email, otp, subject='Your OTP for BusinessPulse AI'):
+    print(f"[OTP DEBUG] Generated OTP for {to_email}: {otp}")
+    try:
+        msg = Message(subject, sender=app.config['MAIL_USERNAME'], recipients=[to_email])
+        msg.body = f'Your One-Time Password is: {otp}\n\nPlease use this to complete your action. It expires in 90 seconds.'
+        mail.send(msg)
+        return True
+    except Exception as e:
+        print(f"Error sending email: {e}")
+        return False
+    
 # Database connection setup
 # Attempts MySQL database connection; falls back to local SQLite if MySQL server is unavailable
 db_created = False
