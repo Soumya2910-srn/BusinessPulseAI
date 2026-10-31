@@ -605,6 +605,51 @@ def upload_datasets():
         'redirect_url': url_for('visualizations_page'),
         'analytics': analytics_data
     }, 200
+    @app.route('/visualizations')
+@login_required
+def visualizations_page():
+    # Check if a specific history ID was requested
+    history_id = request.args.get('history_id')
+    user_id = session.get('user_id')
+    selected_record = None
+
+    if history_id:
+        record = AnalysisHistory.query.filter_by(id=history_id, user_id=user_id).first()
+        if record:
+            analytics = json.loads(record.analytics_json)
+            selected_record = record
+        else:
+            analytics = session.get('analytics')
+    else:
+        analytics = session.get('analytics')
+        if not analytics:
+            latest_record = AnalysisHistory.query.filter_by(user_id=user_id).order_by(AnalysisHistory.created_at.desc()).first()
+            if latest_record:
+                analytics = json.loads(latest_record.analytics_json)
+                selected_record = latest_record
+
+    if not analytics:
+        from train_model import train_model
+        ml = train_model()
+        analytics = {
+            'summary': {
+                'prev_revenue': 146850.0, 'curr_revenue': 178310.0, 'revenue_growth': 21.4,
+                'prev_units': 2155, 'curr_units': 2455, 'units_growth': 13.9,
+                'prev_customers': 548, 'curr_customers': 672, 'customers_growth': 22.6,
+                'prev_marketing': 9800.0, 'curr_marketing': 11100.0,
+                'forecasted_revenue': round(ml['model_rev'].predict(12000.0), 2) if ml else 200000.0
+            },
+            'charts': {
+                'categories': ['Apparel', 'Beauty & Personal Care', 'Electronics', 'Home & Kitchen', 'Sports & Outdoors'],
+                'prev_cat_data': [24300.0, 16250.0, 63000.0, 33150.0, 10450.0],
+                'curr_cat_data': [28800.0, 20020.0, 76500.0, 39160.0, 13800.0]
+            }
+        }
+
+    # Fetch user's saved history list
+    history_list = AnalysisHistory.query.filter_by(user_id=user_id).order_by(AnalysisHistory.created_at.desc()).all()
     
+    return render_template("visualizations.html", analytics=analytics, history_list=history_list, selected_record=selected_record)
+
 if __name__ == "__main__":
     app.run(debug=True)
