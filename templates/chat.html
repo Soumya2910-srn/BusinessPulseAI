@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat with Your Data - BusinessPulse AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Montserrat:wght@500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.9.4/dist/dotlottie-wc.js" type="module"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+            background: linear-gradient(135deg, #e3f2fd 0%, #fff8e1 50%, #fce4ec 100%);
+            color: #1a1a2e;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .bg-dots {
+            background-image: radial-gradient(circle, #29A8E318 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+
+        .nav-outer {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            padding: 14px 20px 0;
+        }
+
+        header {
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(28px) saturate(180%);
+            -webkit-backdrop-filter: blur(28px) saturate(180%);
+            border: 1.5px solid rgba(255, 255, 255, 0.75);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(41, 168, 227, 0.13), 0 2px 8px rgba(0, 0, 0, 0.06);
+            position: relative;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.45);
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            border-radius: 1.5rem;
+            box-shadow: 0 0 32px rgba(31, 38, 135, 0.08), 0 0 4px rgba(0, 0, 0, 0.04);
+        }
+
+        .btn-gradient {
+            background: linear-gradient(135deg, #29A8E3 0%, #9b59b6 50%, #E91E9A 100%);
+            background-size: 200% auto;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .btn-gradient:hover {
+            background-position: right center;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(41, 168, 227, 0.35);
+        }
+
+        .prompt-chip {
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(41, 168, 227, 0.2);
+            transition: all 0.2s ease;
+        }
+
+        .prompt-chip:hover {
+            background: rgba(41, 168, 227, 0.12);
+            border-color: #29A8E3;
+            transform: translateY(-1px);
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.4);
+            border-radius: 9999px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(156, 163, 175, 0.7);
+        }
+
+        .prose p {
+            margin-bottom: 0.5rem;
+        }
+
+        .prose ul,
+        .prose ol {
+            margin-left: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .prose li {
+            margin-bottom: 0.25rem;
+        }
+
+        .prose strong {
+            color: #111827;
+        }
+    </style>
+</head>
+
+<body class="relative">
+    <div class="fixed inset-0 z-[-1] bg-dots opacity-60"></div>
+
+    <!-- Header Navigation -->
+    <div class="nav-outer">
+        <header class="w-full max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between">
+            <a href="{{ url_for('dashboard') }}" class="flex items-center gap-3" style="text-decoration:none;">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center">
+                    <dotlottie-wc src="https://lottie.host/fa36fe97-9c23-41ed-96e5-d0e84bfd0565/OUv90FeqWK.json"
+                        style="width: 40px; height: 40px;" autoplay loop></dotlottie-wc>
+                </div>
+                <span class="text-xl font-extrabold tracking-tight font-sans text-gray-900">
+                    BusinessPulse <span
+                        style="background:linear-gradient(90deg,#29A8E3,#E91E9A);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">AI</span>
+                </span>
+            </a>
+
+            <div class="flex items-center gap-3">
+                <a href="{{ url_for('visualizations_page') }}"
+                    class="text-xs sm:text-sm font-semibold text-gray-600 hover:text-gray-900 flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-white/50 transition-colors">
+                    <i data-lucide="bar-chart-3" class="w-4 h-4 text-pink-500"></i> Visualizations
+                </a>
+                <a href="{{ url_for('dashboard') }}"
+                    class="text-xs sm:text-sm font-semibold text-gray-600 hover:text-gray-900 flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-white/50 transition-colors">
+                    <i data-lucide="arrow-left" class="w-4 h-4 text-sky-500"></i> Dashboard
+                </a>
+            </div>
+        </header>
+    </div>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow p-4 md:p-8 max-w-7xl mx-auto w-full flex flex-col">
+        <!-- Choose from Analysis button — above the chat area -->
+        <div class="flex justify-end mb-3">
+            <button id="choose-analysis-btn"
+                class="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm shadow-md transition-all"
+                style="background:linear-gradient(135deg,#7c3aed,#9b59b6);color:#fff;"
+                onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(124,58,237,0.35)'"
+                onmouseout="this.style.transform='';this.style.boxShadow=''">
+                <i data-lucide="history" class="w-4 h-4"></i>
+                Choose from Analysis
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 flex-grow items-stretch">
+
+            <!-- Conversations Sidebar -->
+            <div class="lg:col-span-1 glass-card flex flex-col h-[75vh] overflow-hidden p-4">
+                <h3 class="font-bold mb-2 text-gray-900">Conversations</h3>
+                <div class="mb-3">
+                    <button id="new-session-btn" class="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white text-sm font-semibold rounded-xl shadow-sm transition-all duration-200">+ New Chat</button>
+                </div>
+                <ul id="session-list" class="flex flex-col gap-1 overflow-y-auto flex-grow"></ul>
+            </div>
+
+
+
+            <!-- Chat Box -->
+            <div class="lg:col-span-4 glass-card flex flex-col h-[75vh] overflow-hidden">
+                <!-- Chat Header -->
+                <div class="p-4 border-b border-white/60 bg-white/30 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="w-11 h-11 rounded-full bg-white shadow-md border border-sky-100 flex items-center justify-center overflow-hidden p-0.5">
+                            <iframe src="https://lottie.host/embed/10ca4a60-9100-4412-8c43-102a760d9f3b/RaFPYUt6qD.json"
+                                class="w-full h-full pointer-events-none border-0"></iframe>
+                        </div>
+                        <div>
+                            <h2 class="font-bold text-gray-900 text-sm sm:text-base">RAG Data Intelligence Assistant
+                            </h2>
+                            <div class="flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                <span class="text-[11px] text-gray-500">Powered by LangChain &amp; FAISS</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="clearChat()"
+                        class="text-xs text-gray-500 hover:text-rose-500 flex items-center gap-1 px-2.5 py-1 rounded-lg hover:bg-white/40 transition-colors"
+                        title="Clear conversation">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Clear
+                    </button>
+                </div>
+
+                <!-- Chat Messages Scroll Area -->
+                <div id="chat-messages" class="flex-grow p-4 sm:p-6 overflow-y-auto space-y-4">
+                    <div class="flex gap-3 max-w-2xl">
+                        <div
+                            class="w-9 h-9 rounded-full bg-white shadow-md border border-sky-100 flex-shrink-0 flex items-center justify-center overflow-hidden p-0.5">
+                            <iframe src="https://lottie.host/embed/10ca4a60-9100-4412-8c43-102a760d9f3b/RaFPYUt6qD.json"
+                                class="w-full h-full pointer-events-none border-0"></iframe>
+                        </div>
+                        <div
+                            class="bg-white/80 border border-white/80 p-4 rounded-2xl rounded-tl-sm text-sm text-gray-800 shadow-sm leading-relaxed prose">
+                            Hello <strong>{{ user.username if user else 'there' }}</strong>! 👋<br>
+                            I am your <strong>BusinessPulse RAG Assistant</strong>. I can analyze your uploaded
+                            datasets, compute trends, and interpret machine learning forecasts.
+                            <br><br>
+                            Try asking me questions about your revenue, customer growth, or category performance!
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Suggested Prompts (inside chat box, above input) -->
+                <div class="px-4 pt-3 pb-1 border-t border-white/40 bg-white/20">
+                    <p
+                        class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1">
+                        <i data-lucide="lightbulb" class="w-3 h-3 text-amber-400"></i> Suggested
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="usePrompt('What is the projected revenue for next month?')"
+                            class="prompt-chip px-3 py-1.5 rounded-full text-xs text-gray-700 hover:text-sky-700">
+                            📈 Projected revenue next month?
+                        </button>
+                        <button onclick="usePrompt('Which product category performed the best?')"
+                            class="prompt-chip px-3 py-1.5 rounded-full text-xs text-gray-700 hover:text-sky-700">
+                            🏆 Best product category?
+                        </button>
+                        <button onclick="usePrompt('Summarize our revenue growth and customer acquisition.')"
+                            class="prompt-chip px-3 py-1.5 rounded-full text-xs text-gray-700 hover:text-sky-700">
+                            📊 Revenue & customer summary
+                        </button>
+                        <button onclick="usePrompt('What is the impact of marketing spend on our sales?')"
+                            class="prompt-chip px-3 py-1.5 rounded-full text-xs text-gray-700 hover:text-sky-700">
+                            💡 Marketing impact on sales?
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Input Box Area -->
+                <div class="p-4 border-t border-white/60 bg-white/40">
+                    <form id="chat-form" onsubmit="handleChatSubmit(event)" class="flex items-center gap-2">
+                        <div class="relative flex-grow">
+                            <input type="text" id="chat-input" placeholder="Ask anything about your data..."
+                                class="w-full pl-4 pr-10 py-3 rounded-xl bg-white/80 border border-white/80 focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm text-gray-800 placeholder-gray-400 shadow-sm transition-all"
+                                autocomplete="off" required>
+                        </div>
+                        <button type="submit" id="send-btn"
+                            class="btn-gradient px-5 py-3 rounded-xl flex items-center justify-center gap-2 text-sm font-semibold shadow-md">
+                            <span>Send</span>
+                            <i data-lucide="send" class="w-4 h-4"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Analysis Picker Modal -->
+    <div id="analysis-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center"
+        style="background:rgba(0,0,0,0.45);backdrop-filter:blur(4px);">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden"
+            style="max-height:80vh;display:flex;flex-direction:column;">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between"
+                style="background:linear-gradient(135deg,#7c3aed,#9b59b6);">
+                <div>
+                    <h2 class="font-bold text-white text-base">📂 Choose from Analysis</h2>
+                    <p class="text-purple-200 text-xs mt-0.5">Select a saved analysis to chat about</p>
+                </div>
+                <button id="close-modal-btn" class="text-white/70 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <!-- Modal Body -->
+            <div id="analysis-list" class="overflow-y-auto flex-grow px-4 py-4 space-y-3">
+                <p class="text-gray-400 text-sm text-center py-6">Loading analyses…</p>
+            </div>
+            <!-- Modal Footer -->
+            <div class="px-6 py-3 border-t border-gray-100 text-right">
+                <button id="close-modal-footer-btn"
+                    class="px-5 py-2 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-100 transition-colors">Cancel</button>
+            </div>
+        </div>
+    </div>
+    </main>
+
+    <!-- Delete Confirmation Modal (in-page, no browser dialogs) -->
+    <div id="delete-confirm-overlay" class="fixed inset-0 z-50 hidden flex items-center justify-center"
+         style="background:rgba(0,0,0,0.35);backdrop-filter:blur(3px);">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
+            <div class="px-6 py-5">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-rose-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-gray-900 text-sm">Delete Chat?</h3>
+                        <p class="text-xs text-gray-500 mt-0.5">This will permanently delete <span id="delete-confirm-title" class="font-semibold text-gray-700"></span></p>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-400 mb-4">This action cannot be undone.</p>
+                <div class="flex gap-2 justify-end">
+                    <button id="delete-confirm-no"
+                        class="px-4 py-2 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-100 transition-colors">Cancel</button>
+                    <button id="delete-confirm-yes"
+                        class="px-4 py-2 rounded-xl text-sm font-semibold bg-rose-500 text-white hover:bg-rose-600 transition-colors">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        function usePrompt(text) {
+            const cleanText = text.replace(/^"|"$/g, '');
+            const input = document.getElementById('chat-input');
+            input.value = cleanText;
+            input.focus();
+        }
+
+        const botAvatarHtml = `
+            <div class="w-9 h-9 rounded-full bg-white shadow-md border border-sky-100 flex-shrink-0 flex items-center justify-center overflow-hidden p-0.5">
+                <iframe src="https://lottie.host/embed/10ca4a60-9100-4412-8c43-102a760d9f3b/RaFPYUt6qD.json" class="w-full h-full pointer-events-none border-0"></iframe>
+            </div>
+        `;
+
+        function clearChat() {
+            const container = document.getElementById('chat-messages');
+            container.innerHTML = `
+                <div class="flex gap-3 max-w-2xl">
+                    ${botAvatarHtml}
+                    <div class="bg-white/80 border border-white/80 p-4 rounded-2xl rounded-tl-sm text-sm text-gray-800 shadow-sm leading-relaxed prose">
+                        Conversation cleared. How can I help you with your data today?
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        async function handleChatSubmit(e) {
+            e.preventDefault();
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            if (!message) return;
+
+            input.value = '';
+            appendUserMessage(message);
+
+            // Show Typing Indicator
+            const typingIndicatorId = appendTypingIndicator();
+            scrollToBottom();
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: message })
+                });
+
+                const data = await response.json();
+                removeElement(typingIndicatorId);
+
+                if (response.ok && data.status === 'success') {
+                    appendBotMessage(data.response);
+                } else {
+                    appendBotMessage(data.message || 'Something went wrong while processing your request.');
+                }
+            } catch (err) {
+                removeElement(typingIndicatorId);
+                appendBotMessage('⚠️ Network error: Could not reach the server.');
+            }
+            scrollToBottom();
+        }
+
+        function appendUserMessage(text) {
+            const container = document.getElementById('chat-messages');
+            const div = document.createElement('div');
+            div.className = 'flex gap-3 max-w-2xl ml-auto justify-end';
+            div.innerHTML = `
+        <div class="btn-gradient p-3.5 rounded-2xl rounded-tr-sm text-sm text-white shadow-sm">
+            ${escapeHtml(text)}
+        </div>
+        <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-sky-500 to-blue-600 flex-shrink-0 flex items-center justify-center text-white text-xs shadow-sm">
+            <i data-lucide="user" class="w-4 h-4"></i>
+        </div>
+    `;
+            container.appendChild(div);
+            lucide.createIcons();
+            addMessageToSession('user', text);
+        }
+
+
+        function appendBotMessage(markdownText) {
+            const container = document.getElementById('chat-messages');
+            const div = document.createElement('div');
+            div.className = 'flex gap-3 max-w-2xl';
+            const parsedHtml = marked.parse(markdownText);
+            div.innerHTML = `
+                ${botAvatarHtml}
+                <div class="bg-white/85 border border-white/80 p-4 rounded-2xl rounded-tl-sm text-sm text-gray-800 shadow-sm leading-relaxed prose">
+                    ${parsedHtml}
+                </div>
+            `;
+            container.appendChild(div);
+            lucide.createIcons();
+            addMessageToSession('bot', markdownText);
+        }
+
+        function appendTypingIndicator() {
+            const id = 'typing-' + Date.now();
+            const container = document.getElementById('chat-messages');
+            const div = document.createElement('div');
+            div.id = id;
+            div.className = 'flex gap-3 max-w-2xl';
+            div.innerHTML = `
+                ${botAvatarHtml}
+                <div class="bg-white/80 border border-white/80 px-4 py-3 rounded-2xl rounded-tl-sm flex items-center gap-1.5 shadow-sm">
+                    <div class="w-2 h-2 rounded-full bg-purple-500 animate-bounce"></div>
+                    <div class="w-2 h-2 rounded-full bg-purple-500 animate-bounce" style="animation-delay: 0.2s"></div>
+                    <div class="w-2 h-2 rounded-full bg-purple-500 animate-bounce" style="animation-delay: 0.4s"></div>
+                </div>
+            `;
+            container.appendChild(div);
+            lucide.createIcons();
+            return id;
+        }
+
+        function removeElement(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+
+        function scrollToBottom() {
+            const container = document.getElementById('chat-messages');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+        // ----- Session Management -----
+        let currentSessionId = null;
+
+        function loadSessions() {
+            const data = localStorage.getItem('chatSessions');
+            return data ? JSON.parse(data) : [];
+        }
+
+        function saveSessions(sessions) {
+            localStorage.setItem('chatSessions', JSON.stringify(sessions));
+        }
+
+        function renderSessionList() {
+            const listEl = document.getElementById('session-list');
+            listEl.innerHTML = '';
+            const sessions = loadSessions();
+            if (sessions.length === 0) {
+                listEl.innerHTML = '<li class="text-xs text-gray-400 text-center py-4">No chats yet</li>';
+                return;
+            }
+            sessions.forEach(sess => {
+                const isActive = sess.id === currentSessionId;
+                const li = document.createElement('li');
+                // Subtle dark shade for active — no colors
+                li.className = 'group relative flex items-center rounded-xl transition-all duration-200 ' +
+                    (isActive ? 'bg-gray-800/10 border border-gray-400/30' : 'hover:bg-black/5');
+
+                // Chat title button
+                const btn = document.createElement('button');
+                btn.className = 'flex-grow text-left px-3 py-2.5 text-sm truncate rounded-xl ' +
+                    (isActive ? 'font-semibold text-gray-900' : 'font-medium text-gray-600');
+                btn.textContent = sess.title;
+                btn.title = sess.title;
+                btn.onclick = () => selectSession(sess.id);
+
+                // Action buttons (edit + delete)
+                const actions = document.createElement('div');
+                actions.className = 'flex items-center gap-1 pr-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0';
+
+                // Edit button
+                const editBtn = document.createElement('button');
+                editBtn.title = 'Rename';
+                editBtn.className = 'p-1 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors';
+                editBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+                editBtn.onclick = (e) => { e.stopPropagation(); showRenameUI(sess.id, sess.title, li, btn, actions); };
+
+                // Delete button
+                const delBtn = document.createElement('button');
+                delBtn.title = 'Delete';
+                delBtn.className = 'p-1 rounded-lg text-gray-400 hover:text-rose-500 hover:bg-rose-50 transition-colors';
+                delBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>`;
+                delBtn.onclick = (e) => { e.stopPropagation(); showDeleteConfirm(sess.id, sess.title); };
+
+                actions.appendChild(editBtn);
+                actions.appendChild(delBtn);
+                li.appendChild(btn);
+                li.appendChild(actions);
+                listEl.appendChild(li);
+            });
+        }
+
+        // ------ Inline Rename UI ------
+        function showRenameUI(id, currentTitle, li, titleBtn, actionsEl) {
+            // Hide existing content
+            titleBtn.classList.add('hidden');
+            actionsEl.classList.add('hidden');
+
+            // Build inline rename row
+            const wrapper = document.createElement('div');
+            wrapper.className = 'flex items-center gap-1 w-full px-2 py-1.5';
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = currentTitle;
+            input.className = 'flex-grow text-sm px-2 py-1 rounded-lg border border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white text-gray-800';
+
+            const saveBtn = document.createElement('button');
+            saveBtn.textContent = 'Save';
+            saveBtn.className = 'px-2 py-1 text-xs font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors';
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = 'Cancel';
+            cancelBtn.className = 'px-2 py-1 text-xs font-semibold text-gray-500 hover:text-gray-700 transition-colors';
+
+            function doSave() {
+                const newTitle = input.value.trim();
+                if (!newTitle) { input.focus(); return; }
+                const sessions = loadSessions();
+                const sess = sessions.find(s => s.id === id);
+                if (sess) { sess.title = newTitle; saveSessions(sessions); }
+                renderSessionList();
+            }
+            function doCancel() {
+                wrapper.remove();
+                titleBtn.classList.remove('hidden');
+                actionsEl.classList.remove('hidden');
+            }
+
+            saveBtn.onclick = (e) => { e.stopPropagation(); doSave(); };
+            cancelBtn.onclick = (e) => { e.stopPropagation(); doCancel(); };
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') doSave();
+                if (e.key === 'Escape') doCancel();
+            });
+
+            wrapper.appendChild(input);
+            wrapper.appendChild(saveBtn);
+            wrapper.appendChild(cancelBtn);
+            li.appendChild(wrapper);
+            input.focus();
+            input.select();
+        }
+
+        // ------ In-page Delete Confirmation ------
+        function showDeleteConfirm(id, title) {
+            const overlay = document.getElementById('delete-confirm-overlay');
+            document.getElementById('delete-confirm-title').textContent = `"${title}"`;
+            overlay.classList.remove('hidden');
+
+            // Wire up buttons (replace old listeners)
+            const confirmBtn = document.getElementById('delete-confirm-yes');
+            const cancelBtn = document.getElementById('delete-confirm-no');
+            const newConfirm = confirmBtn.cloneNode(true);
+            const newCancel = cancelBtn.cloneNode(true);
+            confirmBtn.replaceWith(newConfirm);
+            cancelBtn.replaceWith(newCancel);
+
+            newConfirm.onclick = () => { overlay.classList.add('hidden'); doDeleteSession(id); };
+            newCancel.onclick = () => { overlay.classList.add('hidden'); };
+            overlay.onclick = (e) => { if (e.target === overlay) overlay.classList.add('hidden'); };
+        }
+
+        function doDeleteSession(id) {
+            let sessions = loadSessions();
+            sessions = sessions.filter(s => s.id !== id);
+            saveSessions(sessions);
+            if (currentSessionId === id) {
+                currentSessionId = null;
+                document.getElementById('chat-messages').innerHTML = '';
+                if (sessions.length > 0) selectSession(sessions[0].id);
+                else startNewSession();
+            } else {
+                renderSessionList();
+            }
+        }
+
+        function startNewSession() {
+            const sessions = loadSessions();
+            const id = Date.now();
+            const title = `Chat ${sessions.length + 1}`;
+            const newSess = { id, title, messages: [] };
+            sessions.push(newSess);
+            saveSessions(sessions);
+            selectSession(id);
+        }
+
+
+        function selectSession(id) {
+            currentSessionId = id;
+            const sessions = loadSessions();
+            const sess = sessions.find(s => s.id === id);
+            const container = document.getElementById('chat-messages');
+            container.innerHTML = '';
+            if (sess) {
+                sess.messages.forEach(m => {
+                    if (m.role === 'user') appendUserMessage(m.content);
+                    else appendBotMessage(m.content);
+                });
+            }
+            renderSessionList(); // re-render so active style updates
+            scrollToBottom();
+        }
+
+        function addMessageToSession(role, content) {
+            if (!currentSessionId) return;
+            const sessions = loadSessions();
+            const sess = sessions.find(s => s.id === currentSessionId);
+            if (!sess) return;
+            sess.messages.push({ role, content });
+            saveSessions(sessions);
+            renderSessionList();
+        }
+
+        // ---- Analysis Picker Modal ----
+        const modal = document.getElementById('analysis-modal');
+
+        function openAnalysisModal() {
+            modal.classList.remove('hidden');
+            lucide.createIcons();
+            fetchAnalyses();
+        }
+
+        function closeAnalysisModal() {
+            modal.classList.add('hidden');
+        }
+
+        async function fetchAnalyses() {
+            const listEl = document.getElementById('analysis-list');
+            listEl.innerHTML = '<p class="text-gray-400 text-sm text-center py-6">Loading…</p>';
+            try {
+                const res = await fetch('/api/analysis');
+                const data = await res.json();
+                if (!res.ok || data.status !== 'success') throw new Error(data.message || 'Failed');
+                const analyses = data.analyses;
+                if (analyses.length === 0) {
+                    listEl.innerHTML = '<p class="text-gray-400 text-sm text-center py-8">No saved analyses found. Upload datasets first!</p>';
+                    return;
+                }
+                listEl.innerHTML = '';
+                analyses.forEach(a => {
+                    const d = new Date(a.created_at);
+                    const label = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    const s = a.summary || {};
+                    const card = document.createElement('button');
+                    card.className = 'w-full text-left p-4 rounded-xl border border-gray-200 hover:border-purple-400 hover:bg-purple-50 transition-all group';
+                    card.innerHTML = `
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="font-semibold text-gray-800 text-sm group-hover:text-purple-700">\uD83D\uDCC5 ${label}</span>
+                            <span class="text-[10px] bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full font-semibold">Analysis #${a.id}</span>
+                        </div>
+                        <div class="flex flex-wrap gap-3 text-xs text-gray-500 mt-1">
+                            ${s.curr_revenue != null ? `<span>\uD83D\uDCB0 Rev: <b class="text-gray-700">\u20B9${Number(s.curr_revenue).toLocaleString('en-IN')}</b></span>` : ''}
+                            ${s.revenue_growth != null ? `<span>\uD83D\uDCC8 Growth: <b class="${s.revenue_growth >= 0 ? 'text-emerald-600' : 'text-rose-600'}">${s.revenue_growth > 0 ? '+' : ''}${s.revenue_growth}%</b></span>` : ''}
+                            ${s.forecasted_revenue != null ? `<span>\uD83E\uDD16 Forecast: <b class="text-purple-600">\u20B9${Number(s.forecasted_revenue).toLocaleString('en-IN')}</b></span>` : ''}
+                        </div>
+                    `;
+                    card.onclick = () => selectAnalysis(a);
+                    listEl.appendChild(card);
+                });
+            } catch (err) {
+                listEl.innerHTML = `<p class="text-rose-400 text-sm text-center py-6">⚠️ ${err.message}</p>`;
+            }
+        }
+
+        function selectAnalysis(analysis) {
+            closeAnalysisModal();
+            const s = analysis.summary || {};
+            const d = new Date(analysis.created_at);
+            const label = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+            const context = `I have selected the analysis from ${label}. ` +
+                (s.curr_revenue != null ? `Revenue: \u20B9${Number(s.curr_revenue).toLocaleString('en-IN')}. ` : '') +
+                (s.revenue_growth != null ? `Growth: ${s.revenue_growth}%. ` : '') +
+                (s.forecasted_revenue != null ? `Forecast: \u20B9${Number(s.forecasted_revenue).toLocaleString('en-IN')}. ` : '');
+            document.getElementById('chat-input').value = context;
+            document.getElementById('chat-input').focus();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderSessionList();
+            const newBtn = document.getElementById('new-session-btn');
+            if (newBtn) newBtn.addEventListener('click', startNewSession);
+            const sessions = loadSessions();
+            if (sessions.length === 0) {
+                startNewSession();
+            } else {
+                selectSession(sessions[0].id);
+            }
+
+            // Wire up analysis modal buttons
+            document.getElementById('choose-analysis-btn').addEventListener('click', openAnalysisModal);
+            document.getElementById('close-modal-btn').addEventListener('click', closeAnalysisModal);
+            document.getElementById('close-modal-footer-btn').addEventListener('click', closeAnalysisModal);
+            // Close on backdrop click
+            modal.addEventListener('click', (e) => { if (e.target === modal) closeAnalysisModal(); });
+        });
+    </script>
+</body>
+
+</html>

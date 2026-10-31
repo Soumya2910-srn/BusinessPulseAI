@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - BusinessPulse AI</title>
+    <meta name="description" content="Manage your BusinessPulse AI profile, change username and password.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.9.4/dist/dotlottie-wc.js" type="module"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+            background: linear-gradient(135deg, #e3f2fd 0%, #fff8e1 50%, #fce4ec 100%);
+            color: #1a1a2e;
+            min-height: 100vh;
+        }
+        .bg-dots {
+            background-image: radial-gradient(circle, #29A8E318 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+        .nav-outer { position: sticky; top: 0; z-index: 50; padding: 14px 20px 0; pointer-events: none; }
+        header {
+            background: rgba(255,255,255,0.88);
+            backdrop-filter: blur(28px) saturate(180%);
+            -webkit-backdrop-filter: blur(28px) saturate(180%);
+            border: 1.5px solid rgba(255,255,255,0.75);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(41,168,227,0.13), 0 2px 8px rgba(0,0,0,0.06);
+            position: relative; pointer-events: all; overflow: visible;
+        }
+        header::before {
+            content: ''; position: absolute; inset: 0; border-radius: 20px; padding: 1.5px;
+            background: linear-gradient(90deg, #29A8E3 0%, #9b59b6 40%, #E91E9A 70%, #F5A623 100%);
+            background-size: 200% auto;
+            animation: navBorderShimmer 4s linear infinite;
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none;
+        }
+        @keyframes navBorderShimmer { 0%{background-position:0% center;} 100%{background-position:200% center;} }
+        .nav-link {
+            position: relative; font-size: 1rem; font-weight: 600; color: #374151;
+            padding: 0.5rem 1rem; border-radius: 8px;
+            transition: color 0.25s ease, background 0.25s ease;
+        }
+        .nav-link:hover { color: #1a1a2e; background: rgba(41,168,227,0.07); }
+        .nav-btn-primary {
+            font-size: 0.875rem; font-weight: 700; color: white;
+            padding: 0.5rem 1.4rem; border-radius: 50px;
+            background: linear-gradient(135deg, #29A8E3 0%, #9b59b6 50%, #E91E9A 100%);
+            background-size: 200% auto;
+            box-shadow: 0 4px 18px rgba(41,168,227,0.38);
+            transition: all 0.3s ease;
+        }
+        .nav-btn-primary:hover { transform: translateY(-2px) scale(1.04); box-shadow: 0 10px 30px rgba(41,168,227,0.45); }
+        .logo-icon-wrap { transition: transform 0.3s ease; }
+        .logo-icon-wrap:hover { transform: rotate(-4deg) scale(1.1); }
+
+        /* ── Cards ── */
+        .card {
+            background: rgba(255,255,255,0.72);
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            border: 1px solid rgba(255,255,255,0.85);
+            border-radius: 1.5rem;
+            box-shadow: 0 4px 30px rgba(31,38,135,0.08);
+        }
+        .form-input {
+            width: 100%;
+            padding: 0.8rem 1rem 0.8rem 2.7rem;
+            border: 1.5px solid #e0e7f0;
+            border-radius: 12px;
+            font-size: 0.92rem;
+            color: #1a1a2e;
+            background: #f8faff;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            outline: none;
+        }
+        .form-input:focus { border-color: #29A8E3; box-shadow: 0 0 0 3px rgba(41,168,227,0.12); background: white; }
+        .form-input::placeholder { color: #b0b8cc; }
+        .input-wrap { position: relative; }
+        .input-icon { position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: #aab4c8; pointer-events: none; }
+        .toggle-pw { position: absolute; right: 0.85rem; top: 50%; transform: translateY(-50%); color: #aab4c8; cursor: pointer; background: none; border: none; }
+        .btn-primary {
+            padding: 0.8rem 2rem; border-radius: 12px;
+            background: linear-gradient(135deg, #29A8E3 0%, #E91E9A 100%);
+            color: white; font-weight: 700; font-size: 0.92rem;
+            border: none; cursor: pointer;
+            box-shadow: 0 4px 18px rgba(41,168,227,0.3);
+            transition: all 0.2s ease;
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(41,168,227,0.4); }
+        .btn-danger {
+            padding: 0.8rem 2rem; border-radius: 12px;
+            background: linear-gradient(135deg, #ff6b6b, #ee0979);
+            color: white; font-weight: 700; font-size: 0.92rem;
+            border: none; cursor: pointer;
+            box-shadow: 0 4px 18px rgba(238,9,121,0.25);
+            transition: all 0.2s ease;
+        }
+        .btn-danger:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(238,9,121,0.35); }
+        .stat-card {
+            background: rgba(255,255,255,0.5);
+            border: 1px solid rgba(255,255,255,0.7);
+            border-radius: 1rem;
+            padding: 1.1rem 1.3rem;
+            text-align: center;
+        }
+        .role-badge-admin {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 4px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 700;
+            background: linear-gradient(135deg, #29A8E322, #E91E9A22);
+            border: 1px solid #E91E9A55; color: #E91E9A;
+        }
+        .role-badge-user {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 4px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 700;
+            background: #f0f9ff; border: 1px solid #bae6fd; color: #0284c7;
+        }
+        .flash-msg { background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        @keyframes slideInUp { from{opacity:0;transform:translateY(16px);} to{opacity:1;transform:translateY(0);} }
+        #main-content { animation: slideInUp 0.5s ease both; }
+        /* Avatar */
+        .avatar-ring {
+            width: 80px; height: 80px; border-radius: 50%;
+            background: linear-gradient(135deg, #29A8E3, #9b59b6, #E91E9A);
+            padding: 3px; flex-shrink: 0;
+        }
+        .avatar-inner {
+            width: 100%; height: 100%; border-radius: 50%;
+            background: linear-gradient(135deg, #5b8dee, #7c3aed);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.8rem; font-weight: 800; color: white;
+            text-transform: uppercase;
+        }
+        /* User dropdown */
+        .user-dropdown { display: none; }
+        .user-dropdown.open { display: block; }
+        /* Separator label */
+        .section-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #9ca3af; margin-bottom: 0.75rem; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col relative">
+    <div class="fixed inset-0 z-[-1] bg-dots opacity-60"></div>
+    <div class="fixed top-0 right-0 w-80 h-80 rounded-full z-[-1]" style="background:radial-gradient(circle,#29A8E318 0%,transparent 70%);"></div>
+    <div class="fixed bottom-0 left-0 w-80 h-80 rounded-full z-[-1]" style="background:radial-gradient(circle,#E91E9A12 0%,transparent 70%);"></div>
+
+    <div id="main-content" class="flex flex-col min-h-screen">
+        <!-- Navbar -->
+        <div class="nav-outer">
+            <header class="w-full max-w-7xl mx-auto">
+                <div class="flex items-center justify-between px-6 py-3">
+                    <a href="/" class="flex items-center gap-3" style="text-decoration:none;">
+                        <div class="logo-icon-wrap">
+                            <dotlottie-wc src="https://lottie.host/fa36fe97-9c23-41ed-96e5-d0e84bfd0565/OUv90FeqWK.json"
+                                style="width:40px;height:40px;" autoplay loop></dotlottie-wc>
+                        </div>
+                        <span class="text-xl font-extrabold tracking-tight" style="color:#1a1a2e;">
+                            BusinessPulse <span style="background:linear-gradient(90deg,#29A8E3,#E91E9A);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">AI</span>
+                        </span>
+                    </a>
+                    <nav class="hidden md:flex items-center gap-2">
+                        <a href="{{ url_for('dashboard') }}" class="nav-link">Overview</a>
+                        <a href="{{ url_for('visualizations_page') }}" class="nav-link">Analytics</a>
+                    </nav>
+                    <!-- User Dropdown -->
+                    <div class="relative flex items-center gap-2">
+                        <div class="relative">
+                            <button type="button" id="user-menu-btn" onclick="document.getElementById('user-dropdown').classList.toggle('open')"
+                                class="flex items-center gap-3 pl-1.5 pr-4 py-1 rounded-full bg-white border border-sky-200 hover:border-sky-400 transition-all shadow-md group">
+                                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm">
+                                    {{ user.username[0].upper() }}
+                                </div>
+                                <span class="text-sm font-bold text-gray-800">{{ user.username }}</span>
+                                <svg class="w-3.5 h-3.5 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"></path></svg>
+                            </button>
+                            <div id="user-dropdown" class="user-dropdown absolute right-0 mt-3 w-72 bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl shadow-sky-900/10 border border-sky-100 p-5 z-50">
+                                <div class="pb-3.5 mb-3.5 border-b border-gray-100">
+                                    <h4 class="text-base font-bold text-gray-900">{{ user.username }}</h4>
+                                    <p class="text-xs text-gray-500 mt-0.5">{{ user.email }}</p>
+                                    {% if user.role == 'admin' %}
+                                    <span class="role-badge-admin mt-1.5"><i data-lucide="crown" style="width:10px;height:10px;"></i> Admin</span>
+                                    {% else %}
+                                    <span class="role-badge-user mt-1.5"><i data-lucide="user" style="width:10px;height:10px;"></i> Standard User</span>
+                                    {% endif %}
+                                </div>
+                                <div class="space-y-1.5">
+                                    <a href="{{ url_for('profile') }}" class="flex items-center gap-3 p-3 rounded-2xl bg-sky-50/60 border border-sky-100 hover:bg-sky-100 transition-all group">
+                                        <div class="w-9 h-9 rounded-xl bg-sky-100 flex items-center justify-center text-sky-600 group-hover:scale-105 transition-transform">
+                                            <i data-lucide="user-circle" class="w-4 h-4"></i>
+                                        </div>
+                                        <span class="text-sm font-bold text-sky-700">My Profile</span>
+                                    </a>
+                                    {% if user.role == 'admin' %}
+                                    <a href="{{ url_for('admin_panel') }}" class="flex items-center gap-3 p-3 rounded-2xl bg-purple-50/60 border border-purple-100 hover:bg-purple-100 transition-all group">
+                                        <div class="w-9 h-9 rounded-xl bg-purple-100 flex items-center justify-center text-purple-600 group-hover:scale-105 transition-transform">
+                                            <i data-lucide="shield" class="w-4 h-4"></i>
+                                        </div>
+                                        <span class="text-sm font-bold text-purple-700">Admin Panel</span>
+                                    </a>
+                                    {% endif %}
+                                    <a href="{{ url_for('logout') }}" class="flex items-center gap-3 p-3 rounded-2xl bg-rose-50/60 border border-rose-100 hover:bg-rose-100 transition-all group">
+                                        <div class="w-9 h-9 rounded-xl bg-rose-100 flex items-center justify-center text-rose-600 group-hover:scale-105 transition-transform">
+                                            <i data-lucide="log-out" class="w-4 h-4"></i>
+                                        </div>
+                                        <span class="text-sm font-bold text-rose-600">Logout</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+        </div>
+
+        <!-- Main Content -->
+        <main class="flex-grow p-6 md:p-10 max-w-6xl mx-auto w-full">
+
+            <!-- Page Header -->
+            <div class="mb-8">
+                <h1 class="text-3xl font-extrabold" style="color:#1a1a2e;">My Profile</h1>
+                <p class="text-gray-500 mt-1">Manage your account settings and preferences.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-7">
+
+                <!-- LEFT: Profile Summary Card -->
+                <div class="lg:col-span-1">
+                    <div class="card p-6">
+                        <!-- Avatar -->
+                        <div class="flex flex-col items-center text-center mb-6">
+                            <div class="avatar-ring mb-4">
+                                <div class="avatar-inner">{{ user.username[0] }}</div>
+                            </div>
+                            <h2 class="text-xl font-extrabold text-gray-900">{{ user.username }}</h2>
+                            <p class="text-sm text-gray-500 mt-0.5">{{ user.email }}</p>
+                            {% if user.role == 'admin' %}
+                            <span class="role-badge-admin mt-2.5"><i data-lucide="crown" style="width:10px;height:10px;"></i> Administrator</span>
+                            {% else %}
+                            <span class="role-badge-user mt-2.5"><i data-lucide="user" style="width:10px;height:10px;"></i> Standard User</span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Stats -->
+                        <div class="grid grid-cols-2 gap-3 mb-5">
+                            <div class="stat-card">
+                                <div class="text-2xl font-extrabold" style="background:linear-gradient(135deg,#29A8E3,#E91E9A);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">{{ analysis_count }}</div>
+                                <div class="text-xs text-gray-500 font-medium mt-0.5">Analyses Done</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="text-2xl font-extrabold" style="background:linear-gradient(135deg,#F5A623,#E91E9A);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+                                    {{ user.role.capitalize() }}
+                                </div>
+                                <div class="text-xs text-gray-500 font-medium mt-0.5">Account Role</div>
+                            </div>
+                        </div>
+
+                        <!-- Member Since -->
+                        <div class="flex items-center gap-3 p-3 rounded-xl" style="background:rgba(41,168,227,0.06);border:1px solid rgba(41,168,227,0.15);">
+                            <i data-lucide="calendar-days" class="w-4 h-4" style="color:#29A8E3; flex-shrink:0;"></i>
+                            <div>
+                                <div class="text-xs text-gray-400 font-medium">Member Since</div>
+                                <div class="text-sm font-semibold text-gray-700">
+                                    {{ user.created_at.strftime('%B %d, %Y') if user.created_at else 'N/A' }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <a href="{{ url_for('dashboard') }}" class="flex items-center justify-center gap-2 mt-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                            style="background:rgba(41,168,227,0.08);border:1px solid rgba(41,168,227,0.2);color:#29A8E3;">
+                            <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Back to Dashboard
+                        </a>
+                    </div>
+                </div>
+
+                <!-- RIGHT: Edit Forms -->
+                <div class="lg:col-span-2 space-y-6">
+
+                    <!-- Edit Profile Card -->
+                    <div class="card p-6">
+                        <div class="flex items-center gap-3 mb-5">
+                            <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:linear-gradient(135deg,#29A8E322,#29A8E344);">
+                                <i data-lucide="user-pen" class="w-4 h-4" style="color:#29A8E3;"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-gray-900">Edit Profile</h3>
+                                <p class="text-xs text-gray-500">Update your display name.</p>
+                            </div>
+                        </div>
+
+                        <form action="{{ url_for('profile') }}" method="POST" class="space-y-4">
+                            {{ profile_form.hidden_tag() }}
+                            <input type="hidden" name="action" value="update_profile">
+                            <div>
+                                <label class="block text-sm font-semibold mb-1.5" style="color:#374151;">Username</label>
+                                <div class="input-wrap">
+                                    <i data-lucide="at-sign" class="input-icon w-4 h-4"></i>
+                                    {{ profile_form.username(class="form-input", placeholder="Your username", id="username") }}
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold mb-1.5" style="color:#374151;">Email Address</label>
+                                <div class="input-wrap">
+                                    <i data-lucide="mail" class="input-icon w-4 h-4"></i>
+                                    <input type="email" class="form-input" value="{{ user.email }}" disabled style="opacity:0.65;cursor:not-allowed;">
+                                </div>
+                                <p class="text-xs text-gray-400 mt-1.5">Email address cannot be changed.</p>
+                            </div>
+                            <div class="flex justify-end">
+                                <button type="submit" class="btn-primary flex items-center gap-2">
+                                    <i data-lucide="save" class="w-4 h-4"></i> Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Account Security Card -->
+                    <div class="card p-6">
+                        <div class="flex items-center gap-3 mb-5">
+                            <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:linear-gradient(135deg,#29A8E322,#E91E9A22);">
+                                <i data-lucide="shield-check" class="w-4 h-4" style="color:#29A8E3;"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-gray-900">Account Security</h3>
+                                <p class="text-xs text-gray-500">Your account protection settings.</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="p-4 rounded-xl bg-emerald-50/70 border border-emerald-100 flex items-start gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600 flex-shrink-0 mt-0.5">
+                                    <i data-lucide="lock-keyhole" class="w-4 h-4"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-bold text-emerald-900">Passwordless OTP Authentication Active</h4>
+                                    <p class="text-xs text-emerald-700 mt-1 leading-relaxed">
+                                        Your account is protected using modern passwordless authentication. You never have to worry about passwords being stolen, forgotten, or cracked. Every sign-in is authenticated using a fresh 6-digit OTP delivered directly to your inbox.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="p-4 rounded-xl bg-blue-50/60 border border-blue-100 flex items-start gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0 mt-0.5">
+                                    <i data-lucide="mail-check" class="w-4 h-4"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-bold text-blue-900">Primary Security Email: {{ user.email }}</h4>
+                                    <p class="text-xs text-blue-700 mt-1 leading-relaxed">
+                                        All one-time access codes and account notifications are sent directly to this email address. Make sure your email inbox has 2-factor authentication enabled for peak security.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </main>
+
+        <footer class="py-5 text-center text-gray-400 text-xs border-t mt-auto" style="border-color:#e8edf5;">
+            &copy; 2026 BusinessPulse AI. All rights reserved.
+        </footer>
+    </div>
+
+    <!-- Flash Messages -->
+    <div class="fixed bottom-6 right-6 z-50 flex flex-col gap-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="flash-msg px-5 py-4 flex items-center gap-3 border-l-4 {{ 'border-l-green-500' if category == 'success' else 'border-l-red-400' }}" style="animation:slideInUp 0.3s ease;">
+            <i data-lucide="{{ 'check-circle' if category == 'success' else 'alert-circle' }}" class="w-4 h-4 {{ 'text-green-500' if category == 'success' else 'text-red-400' }}"></i>
+            <span class="text-sm font-medium text-gray-700">{{ message }}</span>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // Close dropdown on outside click
+        document.addEventListener('click', function(e) {
+            const btn = document.getElementById('user-menu-btn');
+            const dropdown = document.getElementById('user-dropdown');
+            if (btn && dropdown && !btn.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.remove('open');
+            }
+        });
+    </script>
+</body>
+</html>
