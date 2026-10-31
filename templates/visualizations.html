@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizations - BusinessPulse AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Montserrat:wght@500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.9.4/dist/dotlottie-wc.js" type="module"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+            background: linear-gradient(135deg, #e3f2fd 0%, #fff8e1 50%, #fce4ec 100%);
+            color: #1a1a2e;
+            min-height: 100vh;
+        }
+        .bg-dots {
+            background-image: radial-gradient(circle, #29A8E318 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+        .nav-outer { position: sticky; top: 0; z-index: 50; padding: 14px 20px 0; }
+        header {
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(28px) saturate(180%);
+            border: 1.5px solid rgba(255, 255, 255, 0.75);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(41, 168, 227, 0.13);
+        }
+        .card {
+            background: #ffffff;
+            border: 1px solid #e5eaf5;
+            border-radius: 1.5rem;
+            box-shadow: 0 4px 24px rgba(41, 168, 227, 0.07);
+        }
+        .card-top-bar {
+            height: 4px;
+            border-radius: 1.5rem 1.5rem 0 0;
+            background: linear-gradient(90deg, #29A8E3, #F5A623, #E91E9A);
+        }
+        .status-pill {
+            display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px;
+            border-radius: 50px; font-size: 0.78rem; font-weight: 600;
+        }
+        .nav-btn-primary {
+            font-size: 0.875rem; font-weight: 700; color: white;
+            padding: 0.5rem 1.4rem; border-radius: 50px;
+            background: linear-gradient(135deg, #29A8E3 0%, #9b59b6 50%, #E91E9A 100%);
+            box-shadow: 0 4px 18px rgba(41,168,227,0.38); transition: all 0.3s ease;
+        }
+        .nav-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(41,168,227,0.45); }
+        
+        /* ── Periodic Lottie Popup ── */
+        #lottie-popup {
+            position: fixed;
+            bottom: -100px;
+            right: 20px;
+            z-index: 999;
+            width: 2cm;
+            height: 2cm;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            transition: bottom 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+            pointer-events: none;
+        }
+        #lottie-popup.active {
+            bottom: 20px;
+            pointer-events: auto;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col relative">
+
+    <div class="fixed inset-0 z-[-1] bg-dots opacity-60"></div>
+
+    <!-- ══ Header Nav ══ -->
+    <div class="nav-outer">
+        <header class="w-full max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
+            <a href="/" class="flex items-center gap-3" style="text-decoration:none;">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center">
+                    <dotlottie-wc src="https://lottie.host/fa36fe97-9c23-41ed-96e5-d0e84bfd0565/OUv90FeqWK.json" style="width: 40px; height: 40px;" autoplay loop></dotlottie-wc>
+                </div>
+                <span class="text-xl font-extrabold tracking-tight font-sans text-gray-900">
+                    BusinessPulse <span style="background:linear-gradient(90deg,#29A8E3,#E91E9A);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">AI</span>
+                </span>
+            </a>
+            <nav class="flex items-center gap-4">
+                <a href="{{ url_for('dashboard') }}" class="text-sm font-semibold text-gray-600 hover:text-gray-900 flex items-center gap-1.5">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Dashboard
+                </a>
+            </nav>
+        </header>
+    </div>
+
+    <!-- ══ Visualizations Main Content ══ -->
+    <main class="flex-grow p-6 md:p-10 max-w-7xl mx-auto w-full space-y-8">
+        
+        <!-- Header Banner & History Selector -->
+        <div class="card p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50 text-bp-blue border border-sky-200 text-xs font-bold mb-2">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5 text-sky-500"></i> AI & ML Analytics Dashboard
+                </div>
+                <h1 class="text-3xl font-extrabold text-gray-900">Interactive Data Visualizations</h1>
+                <p class="text-sm text-gray-500 mt-1">
+                    {% if selected_record %}
+                        Viewing saved record from <strong>{{ selected_record.created_at.strftime('%b %d, %Y - %I:%M %p') }}</strong> ({{ selected_record.prev_filename }} & {{ selected_record.curr_filename }})
+                    {% else %}
+                        Comparing baseline month metrics against current performance and machine learning forecasts.
+                    {% endif %}
+                </p>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+                <a href="{{ url_for('dashboard') }}" class="nav-btn-primary flex items-center gap-2">
+                    <i data-lucide="upload-cloud" class="w-4 h-4"></i> Upload New Dataset
+                </a>
+            </div>
+        </div>
+
+        <!-- 1. Key Summary Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <!-- Total Revenue -->
+            <div class="card p-5 relative overflow-hidden">
+                <div class="card-top-bar"></div>
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-gray-500 uppercase">Total Revenue</span>
+                    <span class="status-pill bg-emerald-50 text-emerald-600 border border-emerald-200">+{{ analytics.summary.revenue_growth }}%</span>
+                </div>
+                <div class="text-2xl font-extrabold text-gray-900">₹{{ analytics.summary.curr_revenue | inr_format }}</div>
+                <div class="text-xs text-gray-400 mt-1">Vs. ₹{{ analytics.summary.prev_revenue | inr_format }} (Prev Month)</div>
+            </div>
+
+            <!-- Units Sold -->
+            <div class="card p-5 relative overflow-hidden">
+                <div class="card-top-bar" style="background: linear-gradient(90deg, #9b59b6, #E91E9A);"></div>
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-gray-500 uppercase">Units Sold</span>
+                    <span class="status-pill bg-emerald-50 text-emerald-600 border border-emerald-200">+{{ analytics.summary.units_growth }}%</span>
+                </div>
+                <div class="text-2xl font-extrabold text-gray-900">{{ "{:,}".format(analytics.summary.curr_units) }}</div>
+                <div class="text-xs text-gray-400 mt-1">Vs. {{ "{:,}".format(analytics.summary.prev_units) }} (Prev Month)</div>
+            </div>
+
+            <!-- New Customers -->
+            <div class="card p-5 relative overflow-hidden">
+                <div class="card-top-bar" style="background: linear-gradient(90deg, #10B981, #29A8E3);"></div>
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-gray-500 uppercase">New Customers</span>
+                    <span class="status-pill bg-emerald-50 text-emerald-600 border border-emerald-200">+{{ analytics.summary.customers_growth }}%</span>
+                </div>
+                <div class="text-2xl font-extrabold text-gray-900">{{ "{:,}".format(analytics.summary.curr_customers) }}</div>
+                <div class="text-xs text-gray-400 mt-1">Vs. {{ "{:,}".format(analytics.summary.prev_customers) }} (Prev Month)</div>
+            </div>
+
+            <!-- ML Forecast Revenue -->
+            <div class="card p-5 relative overflow-hidden bg-gradient-to-br from-indigo-50/50 to-purple-50/50">
+                <div class="card-top-bar" style="background: linear-gradient(90deg, #8B5CF6, #EC4899);"></div>
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-purple-700 uppercase">ML Forecast Next Month</span>
+                    <span class="status-pill bg-purple-100 text-purple-700 border border-purple-200 font-bold">Predictive</span>
+                </div>
+                <div class="text-2xl font-extrabold text-purple-900">₹{{ analytics.summary.forecasted_revenue | inr_format }}</div>
+                <div class="text-xs text-purple-500 mt-1">Linear Regression Model Estimate</div>
+            </div>
+        </div>
+
+        <!-- 2. Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Category Comparison Bar Chart -->
+            <div class="card p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-900">Revenue Comparison by Category</h3>
+                        <p class="text-xs text-gray-400">Previous Month vs Current Month (₹)</p>
+                    </div>
+                    <div class="p-2 rounded-xl bg-sky-50 text-sky-600">
+                        <i data-lucide="bar-chart-2" class="w-5 h-5"></i>
+                    </div>
+                </div>
+                <div class="relative h-72">
+                    <canvas id="categoryComparisonChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Doughnut Chart: Distribution -->
+            <div class="card p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-900">Current Month Share</h3>
+                        <p class="text-xs text-gray-400">Product Category Revenue Breakdown (₹)</p>
+                    </div>
+                    <div class="p-2 rounded-xl bg-pink-50 text-pink-600">
+                        <i data-lucide="pie-chart" class="w-5 h-5"></i>
+                    </div>
+                </div>
+                <div class="relative h-72 flex items-center justify-center">
+                    <canvas id="categoryDistributionChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Product Performance Data Table -->
+        <div class="card p-6">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900">Live Market Opportunity & Forecast</h3>
+                    <p class="text-xs text-gray-400">Projected Next Month Revenue based on Current Live Market Prices</p>
+                </div>
+                <div class="p-2 rounded-xl bg-purple-50 text-purple-600">
+                    <i data-lucide="zap" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-gray-100 text-[10px] text-gray-400 uppercase tracking-wider font-bold">
+                            <th class="py-3 px-4">Product Category</th>
+                            <th class="py-3 px-4">Historical Avg Price</th>
+                            <th class="py-3 px-4 text-purple-700 bg-purple-50 rounded-tl-lg">Current Live Price</th>
+                            <th class="py-3 px-4">Avg Monthly Units</th>
+                            <th class="py-3 px-4 text-emerald-700 bg-emerald-50 rounded-tr-lg">Projected Next Month Revenue</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if analytics.category_stats %}
+                            {% for cat, stats in analytics.category_stats.items() %}
+                            <tr class="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                                <td class="py-3 px-4 font-semibold text-gray-800">{{ cat }}</td>
+                                <td class="py-3 px-4 text-gray-500">₹{{ stats.avg_price | inr_format }}</td>
+                                <td class="py-3 px-4 font-bold text-purple-700 bg-purple-50/30">
+                                    <div class="flex items-center gap-1.5">
+                                        ₹{{ stats.live_price | inr_format }}
+                                        {% if stats.live_price > stats.avg_price %}
+                                            <i data-lucide="trending-up" class="w-3.5 h-3.5 text-emerald-500"></i>
+                                        {% elif stats.live_price < stats.avg_price %}
+                                            <i data-lucide="trending-down" class="w-3.5 h-3.5 text-rose-500"></i>
+                                        {% else %}
+                                            <i data-lucide="minus" class="w-3.5 h-3.5 text-gray-400"></i>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td class="py-3 px-4 text-gray-600">{{ "{:,}".format(stats.units) }}</td>
+                                <td class="py-3 px-4 font-bold text-emerald-700 bg-emerald-50/30">
+                                    ₹{{ stats.projected_revenue | inr_format }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr><td colspan="5" class="py-4 text-center text-gray-400 text-sm">Detailed category metrics not available in historical record.</td></tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+
+    </main>
+
+    <footer class="py-5 text-center text-gray-400 text-xs border-t border-gray-200">
+        <p>&copy; 2026 BusinessPulse AI Platform. All rights reserved.</p>
+    </footer>
+
+    <!-- Periodic Lottie Popup -->
+    <a href="{{ url_for('chat_page') }}" id="lottie-popup" title="Chat with AI">
+        <iframe src="https://lottie.host/embed/10ca4a60-9100-4412-8c43-102a760d9f3b/RaFPYUt6qD.json" width="100%" height="100%" frameborder="0" style="pointer-events: none; border: none; background: transparent;"></iframe>
+    </a>
+
+    <script>
+        lucide.createIcons();
+
+        const cData = {{ analytics.charts | tojson }};
+
+        // Render Bar Chart
+        const ctxBar = document.getElementById('categoryComparisonChart').getContext('2d');
+        new Chart(ctxBar, {
+            type: 'bar',
+            data: {
+                labels: cData.categories,
+                datasets: [
+                    {
+                        label: 'Previous Month (₹)',
+                        data: cData.prev_cat_data,
+                        backgroundColor: 'rgba(41, 168, 227, 0.65)',
+                        borderColor: '#29A8E3',
+                        borderWidth: 1.5,
+                        borderRadius: 6
+                    },
+                    {
+                        label: 'Current Month (₹)',
+                        data: cData.curr_cat_data,
+                        backgroundColor: 'rgba(233, 30, 154, 0.65)',
+                        borderColor: '#E91E9A',
+                        borderWidth: 1.5,
+                        borderRadius: 6
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'top' } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+
+        // Render Doughnut Chart
+        const ctxPie = document.getElementById('categoryDistributionChart').getContext('2d');
+        new Chart(ctxPie, {
+            type: 'doughnut',
+            data: {
+                labels: cData.categories,
+                datasets: [{
+                    data: cData.curr_cat_data,
+                    backgroundColor: ['#29A8E3', '#E91E9A', '#F5A623', '#10B981', '#8B5CF6', '#EC4899'],
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+
+
+        // ── Periodic Lottie Popup Logic ──
+        function triggerLottiePopup() {
+            const popup = document.getElementById('lottie-popup');
+            popup.classList.add('active');
+            
+            // Hide the popup after 10 seconds
+            setTimeout(() => {
+                popup.classList.remove('active');
+            }, 10000);
+        }
+
+        // Trigger shortly after page load
+        setTimeout(triggerLottiePopup, 500);
+
+        // Repeat every 1 minute (60000 ms)
+        setInterval(triggerLottiePopup, 60000);
+    </script>
+</body>
+</html>
