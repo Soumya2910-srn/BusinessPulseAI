@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify OTP - BusinessPulse AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Montserrat:wght@500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+    <script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.9.4/dist/dotlottie-wc.js" type="module"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+            background: linear-gradient(135deg, #e3f2fd 0%, #fff8e1 50%, #fce4ec 100%);
+            color: #1a1a2e;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ── Background dots ── */
+        .bg-dots {
+            background-image: radial-gradient(circle, #29A8E322 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+
+        /* ── Card ── */
+        .auth-card {
+            background: #ffffff;
+            border: 1px solid #e5eaf5;
+            border-radius: 1.75rem;
+            box-shadow: 0 8px 40px rgba(41,168,227,0.10), 0 2px 8px rgba(0,0,0,0.04);
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 440px;
+        }
+
+        /* ── Inputs ── */
+        .form-input {
+            width: 100%;
+            padding: 0.85rem 1.1rem;
+            border: 1.5px solid #e0e7f0;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            color: #1a1a2e;
+            background: #f8faff;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            outline: none;
+            letter-spacing: 0.2em;
+            text-align: center;
+            font-weight: 600;
+        }
+        .form-input:focus {
+            border-color: #29A8E3;
+            box-shadow: 0 0 0 3px rgba(41,168,227,0.12);
+            background: white;
+        }
+        .form-input::placeholder { color: #b0b8cc; letter-spacing: normal; font-weight: normal; }
+
+        /* ── Button ── */
+        .btn-submit {
+            width: 100%;
+            padding: 0.9rem;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #29A8E3 0%, #E91E9A 100%);
+            color: white;
+            font-weight: 700;
+            font-size: 1rem;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(41,168,227,0.3);
+            transition: all 0.2s ease;
+        }
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 28px rgba(41,168,227,0.4);
+        }
+
+        /* ── Floating Navbar Wrapper ── */
+        .nav-outer {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            padding: 14px 20px 0;
+            pointer-events: none;
+        }
+
+        /* ── Glassmorphism Header ── */
+        header {
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(28px) saturate(180%);
+            -webkit-backdrop-filter: blur(28px) saturate(180%);
+            border: 1.5px solid rgba(255, 255, 255, 0.75);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(41, 168, 227, 0.13), 0 2px 8px rgba(0,0,0,0.06);
+            position: relative;
+            pointer-events: all;
+            overflow: hidden;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 20px;
+            padding: 1.5px;
+            background: linear-gradient(90deg, #29A8E3 0%, #9b59b6 40%, #E91E9A 70%, #F5A623 100%);
+            background-size: 200% auto;
+            animation: navBorderShimmer 4s linear infinite;
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+
+        @keyframes navBorderShimmer {
+            0%  { background-position: 0% center; }
+            100% { background-position: 200% center; }
+        }
+
+        /* ── Flash messages ── */
+        .flash-msg {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        @keyframes slideInUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        #main-content { animation: slideInUp 0.5s ease both; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col relative">
+
+    <!-- Background -->
+    <div class="fixed inset-0 z-[-1] bg-dots opacity-60"></div>
+    <div class="fixed top-[-5%] right-[-5%] w-72 h-72 rounded-full z-[-1]" style="background: radial-gradient(circle, #29A8E320 0%, transparent 70%);"></div>
+    <div class="fixed bottom-[-5%] left-[-5%] w-72 h-72 rounded-full z-[-1]" style="background: radial-gradient(circle, #E91E9A15 0%, transparent 70%);"></div>
+
+    <div id="main-content" class="flex flex-col min-h-screen">
+        <!-- ══ Navbar ══ -->
+        <div class="nav-outer">
+            <header class="w-full max-w-7xl mx-auto">
+                <div class="flex items-center justify-between px-6 py-3">
+                    <!-- Logo -->
+                    <a href="/" class="flex items-center gap-3" style="text-decoration:none;">
+                        <div class="logo-icon-wrap w-10 h-10 rounded-xl flex items-center justify-center" style="background: transparent;">
+                            <dotlottie-wc src="https://lottie.host/fa36fe97-9c23-41ed-96e5-d0e84bfd0565/OUv90FeqWK.json"
+                                style="width: 40px; height: 40px;" autoplay loop></dotlottie-wc>
+                        </div>
+                        <span class="text-lg font-bold tracking-tight font-sans" style="color:#1a1a2e;">
+                            BusinessPulse <span style="background:linear-gradient(90deg,#29A8E3,#E91E9A);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">AI</span>
+                        </span>
+                    </a>
+                </div>
+            </header>
+        </div>
+
+        <!-- ══ Auth Content ══ -->
+        <main class="flex-grow flex items-center justify-center px-4 py-10">
+            <div class="auth-card">
+
+                <div class="text-center mb-7">
+                    <div class="w-14 h-14 mx-auto mb-3 rounded-2xl flex items-center justify-center" style="background:linear-gradient(135deg,#29A8E322,#E91E9A22); border:1.5px solid #e0e7f0;">
+                        <i data-lucide="shield-check" class="w-7 h-7" style="color:#29A8E3;"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold font-serif mb-1" style="color:#1a1a2e;">
+                        {% if session.get('signup_data') %}Verify & Activate Account{% else %}Verify OTP{% endif %}
+                    </h1>
+                    <p class="text-sm text-gray-500">
+                        {% if session.get('signup_data') %}
+                        Enter the 6-digit code sent to <strong class="text-gray-800">{{ session.get('signup_data', {}).get('email') }}</strong> to activate your account and log in automatically.
+                        {% elif session.get('login_email') %}
+                        Enter the 6-digit code sent to <strong class="text-gray-800">{{ session.get('login_email') }}</strong> to sign in.
+                        {% else %}
+                        Enter the 6-digit code sent to your email.
+                        {% endif %}
+                    </p>
+                </div>
+
+                <form id="otp-form" action="{{ url_for('verify_otp') }}" method="POST" class="space-y-6">
+                    <div class="flex justify-center gap-2 mb-4">
+                        <input type="text" maxlength="1" class="otp-box w-12 h-14 text-center text-xl font-bold border-2 border-gray-200 rounded-lg focus:border-[#29A8E3] focus:ring-2 focus:ring-[#29A8E3]/20 outline-none transition-all bg-[#f8faff]" pattern="\d*" autocomplete="off">
+                        <input type="text" maxlength="1" class="otp-box w-12 h-14 text-center text-xl font-bold border-2 border-gray-200 rounded-lg focus:border-[#29A8E3] focus:ring-2 focus:ring-[#29A8E3]/20 outline-none transition-all bg-[#f8faff]" pattern="\d*" autocomplete="off">
+                        <input type="text" maxlength="1" class="otp-box w-12 h-14 text-center text-xl font-bold border-2 border-gray-200 rounded-lg focus:border-[#29A8E3] focus:ring-2 focus:ring-[#29A8E3]/20 outline-none transition-all bg-[#f8faff]" pattern="\d*" autocomplete="off">
+                        <input type="text" maxlength="1" class="otp-box w-12 h-14 text-center text-xl font-bold border-2 border-gray-200 rounded-lg focus:border-[#29A8E3] focus:ring-2 focus:ring-[#29A8E3]/20 outline-none transition-all bg-[#f8faff]" pattern="\d*" autocomplete="off">
+                        <input type="text" maxlength="1" class="otp-box w-12 h-14 text-center text-xl font-bold border-2 border-gray-200 rounded-lg focus:border-[#29A8E3] focus:ring-2 focus:ring-[#29A8E3]/20 outline-none transition-all bg-[#f8faff]" pattern="\d*" autocomplete="off">
+                        <input type="text" maxlength="1" class="otp-box w-12 h-14 text-center text-xl font-bold border-2 border-gray-200 rounded-lg focus:border-[#29A8E3] focus:ring-2 focus:ring-[#29A8E3]/20 outline-none transition-all bg-[#f8faff]" pattern="\d*" autocomplete="off">
+                    </div>
+                    <input type="hidden" name="otp" id="otp-hidden" required>
+                    
+                    <div class="text-center text-sm font-semibold text-gray-500 mb-2">
+                        Time remaining: <span id="timer" style="color: #E91E9A;">01:30</span>
+                    </div>
+
+                    <div class="pt-2">
+                        <button type="submit" id="submit-btn" class="btn-submit">
+                            {% if session.get('signup_data') %}Confirm & Enter Dashboard{% else %}Verify & Sign In{% endif %}
+                        </button>
+                    </div>
+                </form>
+
+                <p class="mt-5 text-center text-sm text-gray-500">
+                    Didn't receive the email?
+                    {% if session.get('signup_data') %}
+                    <a href="{{ url_for('signup') }}" class="font-semibold" style="color:#29A8E3;">Back to Sign Up</a>
+                    {% else %}
+                    <a href="{{ url_for('login') }}" class="font-semibold" style="color:#29A8E3;">Back to Sign In</a>
+                    {% endif %}
+                </p>
+            </div>
+        </main>
+
+        <!-- ══ Footer ══ -->
+        <footer class="py-5 text-center text-gray-400 text-xs border-t" style="border-color:#e8edf5;">
+            &copy; 2026 BusinessPulse AI. All rights reserved.
+        </footer>
+    </div>
+
+    <!-- Flash Messages -->
+    <div class="fixed bottom-6 right-6 z-50 flex flex-col gap-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="flash-msg px-5 py-4 flex items-center gap-3 border-l-4 {{ 'border-l-green-500' if category == 'success' else 'border-l-red-400' }}" style="animation: slideInUp 0.3s ease;">
+            <i data-lucide="info" class="w-4 h-4 {{ 'text-green-500' if category == 'success' else 'text-red-400' }}"></i>
+            <span class="text-sm font-medium text-gray-700">{{ message }}</span>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+    </div>
+
+    <script>
+        lucide.createIcons();
+        
+        // OTP Boxes Logic
+        const inputs = document.querySelectorAll('.otp-box');
+        const hiddenInput = document.getElementById('otp-hidden');
+        const form = document.getElementById('otp-form');
+        const submitBtn = document.getElementById('submit-btn');
+        
+        // Auto-focus first input
+        if(inputs.length > 0) inputs[0].focus();
+        
+        inputs.forEach((input, index) => {
+            input.addEventListener('input', (e) => {
+                // Ensure only numbers
+                e.target.value = e.target.value.replace(/[^0-9]/g, '');
+                
+                if (e.target.value && index < inputs.length - 1) {
+                    inputs[index + 1].focus();
+                }
+                updateHidden();
+            });
+            
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                    inputs[index - 1].focus();
+                }
+            });
+            
+            // Handle pasting
+            input.addEventListener('paste', (e) => {
+                e.preventDefault();
+                const pastedData = e.clipboardData.getData('text').replace(/[^0-9]/g, '').slice(0, 6);
+                if (pastedData) {
+                    for (let i = 0; i < pastedData.length; i++) {
+                        if (inputs[i]) {
+                            inputs[i].value = pastedData[i];
+                        }
+                    }
+                    if (pastedData.length < 6) {
+                        inputs[pastedData.length].focus();
+                    } else {
+                        inputs[5].focus();
+                    }
+                    updateHidden();
+                }
+            });
+        });
+        
+        function updateHidden() {
+            let otp = '';
+            inputs.forEach(input => { otp += input.value; });
+            hiddenInput.value = otp;
+        }
+
+        // Timer Logic (90 seconds)
+        let timeLeft = 90;
+        const timerDisplay = document.getElementById('timer');
+        
+        const timerInterval = setInterval(() => {
+            timeLeft--;
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timerDisplay.textContent = `0${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+            
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                timerDisplay.textContent = '00:00';
+                timerDisplay.style.color = 'red';
+                inputs.forEach(input => input.disabled = true);
+                submitBtn.disabled = true;
+                submitBtn.style.opacity = '0.5';
+                submitBtn.textContent = 'OTP Expired';
+            }
+        }, 1000);
+    </script>
+</body>
+</html>
