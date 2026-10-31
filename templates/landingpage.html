@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BusinessPulse AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'bp-blue': '#29A8E3',
+                        'bp-amber': '#F5A623',
+                        'bp-pink': '#E91E9A',
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
+                        heading: ['Montserrat', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Montserrat:wght@500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+    <script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.9.4/dist/dotlottie-wc.js" type="module"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #e3f2fd 0%, #fff8e1 50%, #fce4ec 100%);
+            color: #1a1a2e;
+            font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        #loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, #f0f8ff 0%, #fffdf0 50%, #fff0f8 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.7s ease, visibility 0.7s ease;
+        }
+
+        #loading-overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .loading-brand {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 3rem;
+            font-weight: 700;
+            margin-top: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .loading-brand span.blue {
+            color: #29A8E3;
+        }
+
+        .loading-brand span.amber {
+            color: #F5A623;
+        }
+
+        .loading-brand span.pink {
+            color: #E91E9A;
+        }
+
+        .loading-sub {
+            font-size: 0.85rem;
+            color: #aaa;
+            margin-top: 0.3rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        /* ── Background Pattern ── */
+        .bg-dots {
+            background-image: radial-gradient(circle, #29A8E326 1px, transparent 1px);
+            background-size: 28px 28px;
+        }
+
+        /* ── Animated Gradient Text ── */
+        .text-gradient {
+            background: linear-gradient(110deg, #29A8E3 0%, #9b59b6 50%, #E91E9A 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            background-size: 200% auto;
+            animation: gradientShift 4s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0% {
+                background-position: 0% center;
+            }
+
+            50% {
+                background-position: 100% center;
+            }
+
+            100% {
+                background-position: 0% center;
+            }
+        }
+
+        /* ── Floating Navbar Wrapper ── */
+        .nav-outer {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            padding: 14px 20px 0;
+            pointer-events: none;
+        }
+
+        /* ── Glassmorphism Header ── */
+        header {
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(28px) saturate(180%);
+            -webkit-backdrop-filter: blur(28px) saturate(180%);
+            border: 1.5px solid rgba(255, 255, 255, 0.75);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(41, 168, 227, 0.13), 0 2px 8px rgba(0, 0, 0, 0.06);
+            position: relative;
+            pointer-events: all;
+            overflow: hidden;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 20px;
+            padding: 1.5px;
+            background: linear-gradient(90deg, #29A8E3 0%, #9b59b6 40%, #E91E9A 70%, #F5A623 100%);
+            background-size: 200% auto;
+            animation: navBorderShimmer 4s linear infinite;
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+
+        header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 10%;
+            right: 10%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(41, 168, 227, 0.3), rgba(233, 30, 154, 0.3), transparent);
+            border-radius: 50%;
+        }
+
+        @keyframes navBorderShimmer {
+            0% {
+                background-position: 0% center;
+            }
+
+            100% {
+                background-position: 200% center;
+            }
+        }
+
+        /* ── Nav Link Animated Underline ── */
+        .nav-link {
+            position: relative;
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #374151;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: color 0.25s ease, background 0.25s ease;
+            letter-spacing: 0.01em;
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 50%;
+            width: 0;
+            height: 2px;
+            border-radius: 2px;
+            background: linear-gradient(90deg, #29A8E3, #E91E9A);
+            transform: translateX(-50%);
+            transition: width 0.3s cubic-bezier(.4, 0, .2, 1);
+        }
+
+        .nav-link:hover {
+            color: #1a1a2e;
+            background: rgba(41, 168, 227, 0.07);
+        }
+
+        .nav-link:hover::after {
+            width: 70%;
+        }
+
+        /* ── Navbar CTA Buttons ── */
+        .nav-btn-signin {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #29A8E3;
+            padding: 0.55rem 1.4rem;
+            border-radius: 50px;
+            border: 1.5px solid rgba(41, 168, 227, 0.35);
+            background: rgba(41, 168, 227, 0.06);
+            transition: all 0.25s ease;
+            letter-spacing: 0.01em;
+        }
+
+        .nav-btn-signin:hover {
+            background: rgba(41, 168, 227, 0.14);
+            border-color: rgba(41, 168, 227, 0.6);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(41, 168, 227, 0.18);
+        }
+
+        .nav-btn-primary {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: white;
+            padding: 0.55rem 1.6rem;
+            border-radius: 50px;
+            background: linear-gradient(135deg, #29A8E3 0%, #9b59b6 50%, #E91E9A 100%);
+            background-size: 200% auto;
+            box-shadow: 0 4px 18px rgba(41, 168, 227, 0.38);
+            transition: all 0.3s ease;
+            letter-spacing: 0.01em;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-btn-primary::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.22) 50%, transparent 70%);
+            transform: translateX(-100%);
+            transition: transform 0.5s ease;
+        }
+
+        .nav-btn-primary:hover {
+            background-position: right center;
+            transform: translateY(-2px) scale(1.04);
+            box-shadow: 0 10px 30px rgba(41, 168, 227, 0.45);
+        }
+
+        .nav-btn-primary:hover::before {
+            transform: translateX(100%);
+        }
+
+        /* ── Live Status Dot ── */
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #22c55e;
+            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5);
+            animation: statusPing 2.2s ease-in-out infinite;
+            flex-shrink: 0;
+        }
+
+        @keyframes statusPing {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5);
+            }
+
+            50% {
+                box-shadow: 0 0 0 5px rgba(34, 197, 94, 0);
+            }
+        }
+
+        /* ── Logo container hover ── */
+        .logo-icon-wrap {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .logo-icon-wrap:hover {
+            transform: rotate(-4deg) scale(1.1);
+            box-shadow: 0 6px 22px rgba(41, 168, 227, 0.5) !important;
+        }
+
+        /* ── Buttons ── */
+        .btn-primary {
+            background: linear-gradient(135deg, #29A8E3 0%, #9b59b6 50%, #E91E9A 100%);
+            background-size: 200% auto;
+            color: white;
+            font-weight: 700;
+            border-radius: 50px;
+            padding: 0.8rem 2.2rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 24px rgba(41, 168, 227, 0.35);
+            letter-spacing: 0.01em;
+        }
+
+        .btn-primary:hover {
+            background-position: right center;
+            transform: translateY(-3px) scale(1.03);
+            box-shadow: 0 14px 38px rgba(41, 168, 227, 0.45);
+        }
+
+        .btn-outline {
+            background: rgba(255, 255, 255, 0.8);
+            color: #29A8E3;
+            border: 2px solid #29A8E3;
+            font-weight: 700;
+            border-radius: 50px;
+            padding: 0.8rem 2.2rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(8px);
+        }
+
+        .btn-outline:hover {
+            background: linear-gradient(135deg, #29A8E3, #E91E9A);
+            color: white;
+            border-color: transparent;
+            transform: translateY(-3px) scale(1.03);
+            box-shadow: 0 14px 38px rgba(41, 168, 227, 0.35);
+        }
+
+        /* ── Pulsing Badge ── */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 20px;
+            border-radius: 50px;
+            background: linear-gradient(135deg, rgba(41, 168, 227, 0.12), rgba(233, 30, 154, 0.12));
+            border: 1px solid rgba(41, 168, 227, 0.35);
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #29A8E3;
+            box-shadow: 0 2px 12px rgba(41, 168, 227, 0.12);
+            animation: badgePulse 3s ease-in-out infinite;
+        }
+
+        @keyframes badgePulse {
+
+            0%,
+            100% {
+                box-shadow: 0 2px 12px rgba(41, 168, 227, 0.12);
+            }
+
+            50% {
+                box-shadow: 0 2px 22px rgba(41, 168, 227, 0.3);
+            }
+        }
+
+        /* ── Feature Chips ── */
+        .feature-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.75);
+            border: 1.5px solid rgba(41, 168, 227, 0.15);
+            backdrop-filter: blur(10px);
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #374151;
+            transition: all 0.25s ease;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+            cursor: default;
+        }
+
+        .feature-chip:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(41, 168, 227, 0.15);
+            border-color: rgba(41, 168, 227, 0.4);
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        /* ── Lottie Glow Ring ── */
+        .lottie-glow-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .lottie-glow-wrap::before {
+            content: '';
+            position: absolute;
+            inset: -30px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(41, 168, 227, 0.16) 0%, rgba(233, 30, 154, 0.09) 50%, transparent 70%);
+            animation: glowPulse 3s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        .lottie-glow-wrap::after {
+            content: '';
+            position: absolute;
+            inset: 20px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(245, 166, 35, 0.1) 0%, transparent 65%);
+            animation: glowPulse 3s ease-in-out infinite reverse;
+            pointer-events: none;
+        }
+
+        @keyframes glowPulse {
+
+            0%,
+            100% {
+                opacity: 0.6;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 1;
+                transform: scale(1.07);
+            }
+        }
+
+        /* ── dotlottie-wc transparency ── */
+        dotlottie-wc {
+            background: transparent !important;
+            mix-blend-mode: multiply;
+        }
+
+        dotlottie-wc::part(canvas),
+        dotlottie-wc canvas {
+            background: transparent !important;
+            mix-blend-mode: multiply;
+        }
+
+        /* ── Brand Dots ── */
+        .brand-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        /* ── Flash messages ── */
+        .flash-msg {
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 6px 28px rgba(0, 0, 0, 0.1);
+        }
+
+        /* ── Page & Stagger Animations ── */
+        #main-content {
+            animation: fadeInPage 0.6s ease both;
+            animation-delay: 0.1s;
+        }
+
+        @keyframes fadeInPage {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hero-badge {
+            animation: slideInUp 0.5s ease both 0.2s;
+        }
+
+        .hero-title {
+            animation: slideInUp 0.5s ease both 0.35s;
+        }
+
+        .hero-desc {
+            animation: slideInUp 0.5s ease both 0.5s;
+        }
+
+        .hero-chips {
+            animation: slideInUp 0.5s ease both 0.65s;
+        }
+
+        .hero-buttons {
+            animation: slideInUp 0.5s ease both 0.8s;
+        }
+
+        .hero-anim {
+            animation: slideInUp 0.7s ease both 0.4s;
+        }
+
+        /* ── Floating Orbs ── */
+        .float-orb {
+            border-radius: 50%;
+            position: fixed;
+            pointer-events: none;
+            z-index: -1;
+            animation: floatOrb 10s ease-in-out infinite;
+        }
+
+        @keyframes floatOrb {
+
+            0%,
+            100% {
+                transform: translateY(0) scale(1);
+            }
+
+            50% {
+                transform: translateY(-24px) scale(1.04);
+            }
+        }
+    </style>
+</head>
+
+<body class="antialiased relative min-h-screen flex flex-col">
+
+    <!-- ══ Loading Overlay ══ -->
+    <div id="loading-overlay">
+        <!-- Lottie Loading Animation -->
+        <dotlottie-wc src="https://lottie.host/c92f0c6d-8d65-4100-8676-1baf64125ee1/UH0TUWv0Ze.lottie"
+            style="width: 300px; height: 300px;" autoplay loop>
+        </dotlottie-wc>
+        <div class="loading-brand">
+            <span class="blue">Business</span><span class="amber">Pulse</span> <span class="pink">AI</span>
+        </div>
+        <div class="loading-sub">Loading Platform...</div>
+    </div>
+
+    <!-- ══ Background ══ -->
+    <div class="fixed inset-0 z-[-1] bg-dots opacity-50"></div>
+    <div class="float-orb w-96 h-96"
+        style="top:-8%;right:-8%;background:radial-gradient(circle,#29A8E320 0%,transparent 70%);animation-duration:12s;">
+    </div>
+    <div class="float-orb w-80 h-80"
+        style="bottom:-8%;left:-8%;background:radial-gradient(circle,#E91E9A18 0%,transparent 70%);animation-duration:9s;animation-delay:-4s;">
+    </div>
+    <div class="float-orb w-64 h-64"
+        style="top:45%;left:5%;background:radial-gradient(circle,#F5A62318 0%,transparent 70%);animation-duration:11s;animation-delay:-2s;">
+    </div>
+    <div class="float-orb w-48 h-48"
+        style="top:20%;left:40%;background:radial-gradient(circle,#9b59b614 0%,transparent 70%);animation-duration:14s;animation-delay:-6s;">
+    </div>
+
+    <div id="main-content" class="flex flex-col min-h-screen">
+
+        <!-- ══ Header ══ -->
+        <div class="nav-outer">
+            <header class="w-full max-w-7xl mx-auto">
+                <div class="flex items-center justify-between px-6 py-3">
+
+                    <!-- Logo -->
+                    <a href="/" class="flex items-center gap-3 group" style="text-decoration:none;">
+                        <div class="logo-icon-wrap w-10 h-10 rounded-xl flex items-center justify-center"
+                            style="background: transparent;">
+                            <dotlottie-wc src="https://lottie.host/fa36fe97-9c23-41ed-96e5-d0e84bfd0565/OUv90FeqWK.json"
+                                style="width: 40px; height: 40px;" autoplay loop></dotlottie-wc>
+                        </div>
+                        <div class="flex flex-col leading-none">
+                            <span class="text-lg font-bold tracking-tight font-sans"
+                                style="color:#1a1a2e; line-height:1.2;">
+                                BusinessPulse <span
+                                    style="background:linear-gradient(90deg,#29A8E3,#E91E9A);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">AI</span>
+                            </span>
+                        </div>
+                    </a>
+
+                    <!-- Center Nav Links -->
+                    <nav class="hidden md:flex items-center gap-1">
+                        <a href="#features" class="nav-link">Features</a>
+                        <a href="#insights" class="nav-link">Insights</a>
+                        <a href="#pricing" class="nav-link">Pricing</a>
+                        <a href="#about" class="nav-link">About</a>
+                    </nav>
+
+                    <!-- Right CTA -->
+                    <div class="flex items-center gap-2">
+                        {% if session.get('user_id') %}
+                        <a href="{{ url_for('dashboard') }}" class="nav-btn-primary flex items-center gap-2">
+                            <i data-lucide="layout-dashboard" style="width:15px;height:15px;"></i>
+                            Dashboard
+                        </a>
+                        <a href="{{ url_for('logout') }}" class="nav-link">Logout</a>
+                        {% else %}
+                        <a href="{{ url_for('login') }}" class="nav-btn-signin">Sign In</a>
+                        <a href="{{ url_for('signup') }}" class="nav-btn-primary flex items-center gap-2">
+                            Get Started
+                            <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+
+                </div>
+            </header>
+        </div>
+
+        <!-- ══ Hero Section ══ -->
+        <main class="flex-grow flex items-center justify-center px-6 py-12">
+            <div class="max-w-6xl w-full flex flex-col lg:flex-row items-center gap-8">
+
+                <!-- Text Content -->
+                <div class="flex-1 text-center lg:text-left space-y-6">
+                    <div class="hero-badge">
+                        <span class="badge">
+                            <i data-lucide="zap" class="w-3.5 h-3.5"></i>
+                            BusinessPulse AI Platform
+                        </span>
+                    </div>
+
+                    <div class="hero-title">
+                        <h1 class="text-5xl md:text-6xl lg:text-7xl font-bold font-serif leading-tight">
+                            <span class="text-gradient">Business</span><br>
+                            <span class="text-gradient">Intelligence</span>
+                        </h1>
+                    </div>
+
+                    <div class="hero-desc">
+                        <p class="text-lg text-gray-600 leading-relaxed max-w-lg">
+                            Transform your raw data into <strong class="text-gray-800">actionable intelligence</strong>.
+                            AI-generated dashboards, interactive visualizations, and smart forecasting all in one place.
+                        </p>
+                    </div>
+
+                    <div class="hero-chips flex flex-wrap gap-3 justify-center lg:justify-start">
+                        <span class="feature-chip">
+                            <i data-lucide="message-square" class="w-4 h-4" style="color:#29A8E3;"></i>
+                            Chat with your data
+                        </span>
+                        <span class="feature-chip">
+                            <i data-lucide="trending-up" class="w-4 h-4" style="color:#F5A623;"></i>
+                            AI Insights Engine
+                        </span>
+                        <span class="feature-chip">
+                            <i data-lucide="database" class="w-4 h-4" style="color:#E91E9A;"></i>
+                            Auto Dataset Management
+                        </span>
+                    </div>
+
+                    <div class="flex justify-center lg:justify-start gap-2">
+                        <div class="h-1.5 w-12 rounded-full" style="background:linear-gradient(90deg,#29A8E3,#0072ff);">
+                        </div>
+                        <div class="h-1.5 w-12 rounded-full" style="background:linear-gradient(90deg,#F5A623,#ffbe58);">
+                        </div>
+                        <div class="h-1.5 w-12 rounded-full" style="background:linear-gradient(90deg,#E91E9A,#ff65a3);">
+                        </div>
+                    </div>
+
+                    <div
+                        class="hero-buttons flex flex-col sm:flex-row gap-4 justify-center lg:justify-start items-center">
+                        {% if session.get('user_id') %}
+                        <a href="{{ url_for('dashboard') }}" class="btn-primary flex items-center gap-2">
+                            Go to Dashboard <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                        </a>
+                        {% else %}
+                        <a href="{{ url_for('login') }}" class="btn-primary flex items-center gap-2">
+                            <i data-lucide="log-in" class="w-5 h-5"></i> Sign In
+                        </a>
+                        <a href="{{ url_for('signup') }}" class="btn-outline flex items-center gap-2">
+                            <i data-lucide="user-plus" class="w-5 h-5"></i> Create Account
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Hero Animation -->
+                <div class="flex-1 flex justify-center lg:justify-end hero-anim" style="background: transparent;">
+                    <div class="lottie-glow-wrap" style="background: transparent;">
+                        <dotlottie-wc src="https://lottie.host/de3151bd-7b64-435e-b5f4-012bb87a6bf3/KutCo5ilpB.lottie"
+                            background="transparent"
+                            style="width: 580px; height: 580px; background: transparent !important;" autoplay loop>
+                        </dotlottie-wc>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+
+        <!-- ══ Footer ══ -->
+        <footer class="border-t py-6 text-center text-gray-400 text-sm"
+            style="border-color:rgba(232,237,245,0.8); background:rgba(255,255,255,0.45); backdrop-filter:blur(12px);">
+            <div class="flex justify-center items-center gap-2 mb-1">
+                <div class="brand-dot" style="background:#29A8E3;"></div>
+                <div class="brand-dot" style="background:#F5A623;"></div>
+                <div class="brand-dot" style="background:#E91E9A;"></div>
+            </div>
+            <p>&copy; 2026 BusinessPulse AI Platform. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <!-- ══ Flash Messages ══ -->
+    <div class="fixed bottom-6 right-6 z-50 flex flex-col gap-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="flash-msg px-5 py-4 flex items-center gap-3 border-l-4 {{ 'border-l-green-500' if category == 'success' else 'border-l-red-400' }}"
+            style="animation: slideInUp 0.3s ease;">
+            <i data-lucide="info"
+                class="w-4 h-4 {{ 'text-green-500' if category == 'success' else 'text-red-400' }}"></i>
+            <span class="text-sm font-medium text-gray-700">{{ message }}</span>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // ── Loading screen: show for 4 seconds on every page open ──
+        function hideLoader() {
+            document.getElementById('loading-overlay').classList.add('hidden');
+        }
+        setTimeout(hideLoader, 4000);
+    </script>
+
+    <style>
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+    </style>
+</body>
+
+</html>
