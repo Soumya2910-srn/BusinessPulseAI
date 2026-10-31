@@ -376,6 +376,235 @@ def admin_delete_user(user_id):
     db.session.delete(user)
     db.session.commit()
     return {'status': 'success', 'message': f'User {user.username} deleted successfully.'}, 200
+# ─── Core App Routes ─────────────────────────────────────────────────────────
 
+REQUIRED_COLUMNS = {'Date', 'Product_Category', 'Units_Sold', 'Unit_Price', 'Revenue', 'Marketing_Spend', 'New_Customers'}
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    user_id = session.get('user_id')
+    user = User.query.get(user_id)
+    history_list = AnalysisHistory.query.filter_by(user_id=user_id).order_by(AnalysisHistory.created_at.desc()).all()
+    return render_template("dashboard.html", user=user, history_list=history_list)
+
+@app.route('/upload_datasets', methods=['POST'])
+def upload_datasets():
+    if 'user_id' not in session:
+        return {'status': 'error', 'message': 'Unauthorized. Please login.'}, 401
+    
+    if 'prev_month_file' not in request.files or 'curr_month_file' not in request.files:
+        return {'status': 'error', 'message': 'Both Previous Month and Current Month files are required.'}, 400
+
+    prev_file = request.files['prev_month_file']
+    curr_file = request.files['curr_month_file']
+
+    if not prev_file.filename or not curr_file.filename:
+        return {'status': 'error', 'message': 'No selected file found for one or both datasets.'}, 400
+
+    import pandas as pd
+    from train_model import train_model, clean_and_process_dataframe
+    ml_models = train_model()
+
+    def process_and_clean_file(file_obj, label):
+        file_obj.seek(0)
+        try:
+            filename = file_obj.filename.lower()
+            if filename.endswith('.csv'):
+                df = pd.read_csv(file_obj)
+            elif filename.endswith(('.xls', '.xlsx')):
+                df = pd.read_excel(file_obj)
+            else:
+                return None, f"Unsupported file format for {label}."
+        except Exception as e:
+            return None, f"Error reading {label}: {str(e)}"
+            
+        missing = REQUIRED_COLUMNS - set(df.columns)
+        if missing:
+            return None, f"{label} is missing required column(s): {', '.join(missing)}"
+            
+        df = clean_and_process_dataframe(df)
+        return df, "Valid"
+
+    df_prev, msg_prev = process_and_clean_file(prev_file, "Previous Month Dataset")
+    if df_prev is None:
+        return {'status': 'error', 'message': msg_prev}, 400
+
+    df_curr, msg_curr = process_and_clean_file(curr_file, "Current Month Dataset")
+    if df_curr is None:
+        return {'status': 'error', 'message': msg_curr}, 400
+
+    def process_metrics(df):
+        revenue = round(float(df['Revenue'].sum()), 2)
+        units = int(df['Units_Sold'].sum())
+        marketing = round(float(df['Marketing_Spend'].sum()), 2)
+        customers = int(df['New_Customers'].sum())
+        profit = round(revenue - marketing, 2)
+        
+        category_stats = {}
+        for cat, group in df.groupby('Product_Category'):
+            rev = round(float(group['Revenue'].sum()), 2)
+            u = int(group['Units_Sold'].sum())
+            mkt = round(float(group['Marketing_Spend'].sum()), 2)
+            prof = round(rev - mkt, 2)
+            avg_p = round(rev / u, 2) if u > 0 else 0.0
+            category_stats[str(cat)] = {
+                'revenue': rev, 'units': u, 'profit': prof, 'avg_price': avg_p
+            }
+
+        return {
+            'revenue': revenue, 'units': units, 'marketing': marketing,
+            'customers': customers, 'profit': profit,
+            'category_stats': category_stats,
+            'category_revenue': {k: v['revenue'] for k, v in category_stats.items()}
+        }
+
+    prev_metrics = process_metrics(df_prev)
+    curr_metrics = process_metrics(df_curr)
+
+    # Use ML model predictions for upcoming month forecast
+    forecasted_rev = round(ml_models['model_rev'].predict(curr_metrics['marketing'] * 1.1), 2) if ml_models else 0.0
+
+    # Categories list for comparison chart
+    all_categories = sorted(list(set(prev_metrics['category_stats'].keys()).union(curr_metrics['category_stats'].keys())))
+    prev_cat_data = [prev_metrics['category_stats'].get(cat, {}).get('revenue', 0) for cat in all_categories]
+    curr_cat_data = [curr_metrics['category_stats'].get(cat, {}).get('revenue', 0) for cat in all_categories]
+    
+    prev_cat_profit = [prev_metrics['category_stats'].get(cat, {}).get('profit', 0) for cat in all_categories]
+    curr_cat_profit = [curr_metrics['category_stats'].get(cat, {}).get('profit', 0) for cat in all_categories]
+
+    curr_cat_units = [curr_metrics['category_stats'].get(cat, {}).get('units', 0) for cat in all_categories]
+
+    # Live Market Price Integration
+    def fetch_live_prices(categories):
+        from rag_chat import get_gemini_api_key
+        api_key = get_gemini_api_key()
+        if not api_key:
+            return {}
+        try:
+            from langchain_google_genai import ChatGoogleGenerativeAI
+            from langchain_core.prompts import ChatPromptTemplate
+            from langchain_core.output_parsers import StrOutputParser
+            import json
+            import re
+            
+            llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=api_key, temperature=0.1)
+            prompt = ChatPromptTemplate.from_template(
+                "Estimate the current live market price in Indian Rupees (INR) for these items: {categories}. "
+                "Return ONLY a valid JSON object. Keys are item names, values are numbers (floats). Do not include any text, markdown, or backticks outside the JSON. Example: {{\"Gold\": 65000.0}}"
+            )
+            chain = prompt | llm | StrOutputParser()
+            response = chain.invoke({"categories": ", ".join(categories)})
+            
+            cleaned = re.sub(r'```(?:json)?|`', '', response).strip()
+            return json.loads(cleaned)
+        except Exception as e:
+            print("Failed to fetch live prices:", e)
+            return {}
+            
+    live_prices = fetch_live_prices(all_categories)
+    
+    for cat in all_categories:
+        hist_avg = curr_metrics['category_stats'][cat]['avg_price']
+        avg_units = curr_metrics['category_stats'][cat]['units']
+        
+        live_price = live_prices.get(cat, hist_avg)
+        try:
+            live_price = float(live_price)
+        except:
+            live_price = hist_avg
+            
+        proj_rev = round(live_price * avg_units, 2)
+        curr_metrics['category_stats'][cat]['live_price'] = round(live_price, 2)
+        curr_metrics['category_stats'][cat]['projected_revenue'] = proj_rev
+
+    # Monthly Trends
+    combined_df = pd.concat([df_prev, df_curr])
+    if 'Date' in combined_df.columns:
+        combined_df['Month'] = combined_df['Date'].dt.strftime('%b %Y')
+        # Sort chronologically by converting back to datetime for sorting
+        trend_group = combined_df.groupby('Month').agg({'Revenue': 'sum', 'Marketing_Spend': 'sum', 'New_Customers': 'sum', 'Date': 'first'}).sort_values('Date')
+        trend_months = trend_group.index.tolist()
+        trend_revenue = [round(float(x), 2) for x in trend_group['Revenue']]
+        trend_profit = [round(float(r - m), 2) for r, m in zip(trend_group['Revenue'], trend_group['Marketing_Spend'])]
+        trend_customers = [int(x) for x in trend_group['New_Customers']]
+    else:
+        trend_months, trend_revenue, trend_profit, trend_customers = [], [], [], []
+
+    analytics_data = {
+        'summary': {
+            'prev_revenue': prev_metrics['revenue'],
+            'curr_revenue': curr_metrics['revenue'],
+            'revenue_growth': round(((curr_metrics['revenue'] - prev_metrics['revenue']) / prev_metrics['revenue'] * 100) if prev_metrics['revenue'] else 0, 1),
+            'prev_profit': prev_metrics['profit'],
+            'curr_profit': curr_metrics['profit'],
+            'profit_growth': round(((curr_metrics['profit'] - prev_metrics['profit']) / prev_metrics['profit'] * 100) if prev_metrics['profit'] else 0, 1),
+            'prev_units': prev_metrics['units'],
+            'curr_units': curr_metrics['units'],
+            'units_growth': round(((curr_metrics['units'] - prev_metrics['units']) / prev_metrics['units'] * 100) if prev_metrics['units'] else 0, 1),
+            'prev_customers': prev_metrics['customers'],
+            'curr_customers': curr_metrics['customers'],
+            'customers_growth': round(((curr_metrics['customers'] - prev_metrics['customers']) / prev_metrics['customers'] * 100) if prev_metrics['customers'] else 0, 1),
+            'prev_marketing': prev_metrics['marketing'],
+            'curr_marketing': curr_metrics['marketing'],
+            'forecasted_revenue': forecasted_rev
+        },
+        'charts': {
+            'categories': all_categories,
+            'prev_cat_data': prev_cat_data,
+            'curr_cat_data': curr_cat_data,
+            'prev_cat_profit': prev_cat_profit,
+            'curr_cat_profit': curr_cat_profit,
+            'curr_cat_units': curr_cat_units,
+            'trend_months': trend_months,
+            'trend_revenue': trend_revenue,
+            'trend_profit': trend_profit,
+            'trend_customers': trend_customers
+        },
+        'category_stats': curr_metrics['category_stats']
+    }
+    session['analytics'] = analytics_data
+
+    # Save uploaded files for RAG vector indexing
+    prev_filename = f"user_{session['user_id']}_prev_{prev_file.filename}"
+    curr_filename = f"user_{session['user_id']}_curr_{curr_file.filename}"
+    prev_path = os.path.join(app.config['UPLOAD_FOLDER'], prev_filename)
+    curr_path = os.path.join(app.config['UPLOAD_FOLDER'], curr_filename)
+    
+    df_prev.to_csv(prev_path, index=False)
+    df_curr.to_csv(curr_path, index=False)
+
+    # Build RAG Vector Store with FAISS
+    try:
+        build_vector_store(session['user_id'], prev_path, curr_path)
+    except Exception as e:
+        print(f"Error building vector store: {e}")
+
+    # Save to AnalysisHistory Database
+    try:
+        new_history = AnalysisHistory(
+            user_id=session.get('user_id'),
+            prev_filename=prev_file.filename,
+            curr_filename=curr_file.filename,
+            prev_revenue=prev_metrics['revenue'],
+            curr_revenue=curr_metrics['revenue'],
+            revenue_growth=analytics_data['summary']['revenue_growth'],
+            units_growth=analytics_data['summary']['units_growth'],
+            customers_growth=analytics_data['summary']['customers_growth'],
+            forecasted_revenue=forecasted_rev,
+            analytics_json=json.dumps(analytics_data)
+        )
+        db.session.add(new_history)
+        db.session.commit()
+    except Exception as e:
+        print(f"Error saving analysis history: {e}")
+
+    return {
+        'status': 'success',
+        'message': 'Datasets uploaded, ML model trained & visualization saved to history!',
+        'redirect_url': url_for('visualizations_page'),
+        'analytics': analytics_data
+    }, 200
+    
 if __name__ == "__main__":
     app.run(debug=True)
