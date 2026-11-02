@@ -91,9 +91,10 @@ def ensure_user_vector_store(user_id):
             except Exception as e:
                 print(f"Error auto-building default vector store: {e}")
 
-def get_rag_response(user_id, user_query, ml_summary=None):
+def get_rag_response(user_id, user_query, ml_summary=None, insights=None, forecasting=None):
     """
-    Processes user query using FAISS retrieval, adds ML model summary, and queries Gemini LLM.
+    Processes user query using FAISS retrieval, adds ML model summary, AI insights engine data,
+    and forecasting analytics, then queries Gemini LLM.
     """
     api_key = get_gemini_api_key()
     if not api_key:
@@ -126,18 +127,89 @@ def get_rag_response(user_id, user_query, ml_summary=None):
 - Total Units Sold (Prev vs Curr): {ml_summary.get('prev_units', 0)} vs {ml_summary.get('curr_units', 0)} ({ml_summary.get('units_growth', 0)}% growth)
 - New Customers Acquired (Prev vs Curr): {ml_summary.get('prev_customers', 0)} vs {ml_summary.get('curr_customers', 0)} ({ml_summary.get('customers_growth', 0)}% growth)
 - Marketing Spend (Prev vs Curr): ₹{ml_summary.get('prev_marketing', 0):,.2f} vs ₹{ml_summary.get('curr_marketing', 0):,.2f}
-- Linear Regression ML Model Forecast for Next Month Revenue: ₹{ml_summary.get('forecasted_revenue', 0):,.2f}
+- Forecast for Next Month Revenue: ₹{ml_summary.get('forecasted_revenue', 0):,.2f}
+"""
+
+    # Format AI Insights context
+    insights_context = "AI Insights Engine: No structured insights loaded."
+    if insights:
+        exec_sum = insights.get('executive_summary', '')
+        growth_ops = [f"- {op.get('title')}: {op.get('description')} (Action: {op.get('action_item')})" 
+                      for op in insights.get('growth_opportunities', [])]
+        low_perfs = [f"- {lp.get('category')} ({lp.get('severity')} severity): {lp.get('issue')} (Remedy: {lp.get('remediation')})" 
+                     for lp in insights.get('low_performing_products', [])]
+        risks = [f"- {r.get('risk_type')} ({r.get('severity')}): {r.get('impact')} (Mitigation: {r.get('mitigation')})" 
+                 for r in insights.get('risk_analysis', [])]
+        recs = [f"- [{rec.get('priority')}] {rec.get('action')} (Expected: {rec.get('expected_outcome')})" 
+                for rec in insights.get('smart_recommendations', [])]
+        cust_info = insights.get('customer_insights', {})
+
+        insights_context = f"""
+Executive Summary: {exec_sum}
+
+Growth Opportunities:
+{chr(10).join(growth_ops) if growth_ops else "None identified."}
+
+Low Performing Products:
+{chr(10).join(low_perfs) if low_perfs else "All categories performing well."}
+
+Customer & CAC Insights:
+- Acquisition: {cust_info.get('acquisition_health', 'N/A')}
+- CAC Analysis: {cust_info.get('cac_analysis', 'N/A')}
+- Revenue Per Customer: {cust_info.get('revenue_per_customer', 'N/A')}
+
+Key Risks:
+{chr(10).join(risks) if risks else "No critical risks detected."}
+
+Smart Strategic Recommendations:
+{chr(10).join(recs) if recs else "Maintain current course."}
+"""
+
+    # Format Forecasting context
+    forecasting_context = "Forecasting Engine: No projections loaded."
+    if forecasting:
+        sf = forecasting.get('sales_forecast', {})
+        df_cast = forecasting.get('demand_forecast', {})
+        inv = forecasting.get('inventory_forecast', {})
+        
+        inv_alerts = [f"- {it.get('category')}: {it.get('risk_status')} ({it.get('days_of_stock_remaining')} days stock left, reorder {it.get('recommended_reorder_units')} units)" 
+                      for it in inv.get('items', []) if it.get('risk_status') in ['Critical', 'Warning']]
+        
+        demand_items = [f"- {d.get('category')}: {d.get('projected_units')} units ({d.get('growth_pct'):+.1f}% trend: {d.get('trend_status')})" 
+                        for d in df_cast.get('category_demand', [])[:5]]
+
+        forecasting_context = f"""
+Sales & Revenue Forecast:
+- Next Month Expected: ₹{sf.get('next_month_forecast', 0):,.2f} (Conservative: ₹{sf.get('conservative_forecast', 0):,.2f}, Optimistic: ₹{sf.get('optimistic_forecast', 0):,.2f})
+- Direction: {sf.get('trend_direction', 'Steady')}
+
+Demand Forecast:
+- Total Projected Units: {df_cast.get('total_projected_units', 0):,} ({df_cast.get('aggregate_demand_growth_pct', 0):+.1f}% growth)
+Top Category Projections:
+{chr(10).join(demand_items) if demand_items else "No category projections available."}
+
+Inventory & Stockout Forecast:
+- Critical Alerts: {inv.get('critical_stockout_alerts', 0)}
+- Total Restock Capital Required: ₹{inv.get('total_restock_capital_required', 0):,.2f}
+Items Needing Attention:
+{chr(10).join(inv_alerts) if inv_alerts else "All stock levels healthy."}
 """
 
     prompt_template = ChatPromptTemplate.from_template(
-        """You are BusinessPulse AI, an intelligent business intelligence and analytics assistant.
-You help business owners, analysts, and decision-makers understand their sales, revenue, marketing, and performance data.
+        """You are BusinessPulse AI, an intelligent business intelligence, analytics, and executive advisory assistant.
+You help business owners, analysts, and decision-makers understand their sales, revenue, marketing, performance, forecasts, and inventory data.
 
-Analyze the user's question using the retrieved data records and the trained machine learning model outputs below.
+Analyze the user's question using the retrieved data records, machine learning outputs, AI insights, and forecasting models below.
 *IMPORTANT:* If the user's question is a simple greeting (e.g., 'Hello', 'Hi') or a pleasantry (e.g., 'Thank you'), respond politely and naturally without summarizing the dataset, and ask how you can help them with their data today.
 
-=== TRAINED ML MODEL & DATASET SUMMARY ===
+=== BUSINESS METRICS SUMMARY ===
 {ml_context}
+
+=== AI INSIGHTS ENGINE (GROWTH, RISKS, LOW PERFORMERS, RECOMMENDATIONS) ===
+{insights_context}
+
+=== FORECASTING ENGINE (SALES, DEMAND, INVENTORY & RESTOCKING) ===
+{forecasting_context}
 
 === RELEVANT RETRIEVED DATA CHUNKS (FROM FAISS) ===
 {context}
@@ -145,7 +217,7 @@ Analyze the user's question using the retrieved data records and the trained mac
 === USER QUESTION ===
 {question}
 
-Provide a concise, professional, and well-structured answer in Markdown format. Use Indian Rupees (₹) for currency amounts where applicable. If specific information isn't available, mention what can be inferred from the summary metrics."""
+Provide a concise, professional, and well-structured answer in Markdown format. Use Indian Rupees (₹) for currency amounts where applicable. Cite specific figures, risk alerts, growth opportunities, and forecast projections when answering user questions."""
     )
 
     try:
@@ -155,10 +227,11 @@ Provide a concise, professional, and well-structured answer in Markdown format. 
         
         response = chain.invoke({
             "ml_context": ml_context,
+            "insights_context": insights_context,
+            "forecasting_context": forecasting_context,
             "context": retrieved_context,
             "question": user_query
         })
         return response
     except Exception as e:
         return f"❌ **Error generating AI response**: {str(e)}"
-

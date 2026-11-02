@@ -1,6 +1,13 @@
 import os
 import math
 import pandas as pd
+from forecasting import (
+    generate_complete_forecast,
+    simulate_forecast_scenario,
+    compute_sales_revenue_forecast,
+    compute_demand_forecast,
+    compute_inventory_forecast
+)
 
 # Pure Python Linear Regression implementation (gradient descent / normal equation)
 class SimpleLinearRegression:
@@ -101,8 +108,17 @@ def train_model():
     combined_data = prev_data + curr_data
 
     if not combined_data:
-        print("Error: No valid dataset records found for training.")
-        return
+        print("Note: Default monthly csv files not present. Returning default baseline linear regression model.")
+        m_rev = SimpleLinearRegression()
+        m_rev.slope = 15.0
+        m_rev.intercept = 10000.0
+        m_cust = SimpleLinearRegression()
+        m_cust.slope = 0.25
+        m_cust.intercept = 50.0
+        return {
+            'model_rev': m_rev,
+            'model_cust': m_cust
+        }
 
     print("==================================================")
     print("      MACHINE LEARNING MODEL TRAINING SCRIPT      ")
