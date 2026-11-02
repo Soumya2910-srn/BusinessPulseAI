@@ -461,8 +461,8 @@
                     <nav class="hidden md:flex items-center gap-2">
                         <a href="{{ url_for('dashboard') }}" class="nav-link">Overview</a>
                         <a href="{{ url_for('visualizations_page') }}" class="nav-link">Analytics</a>
-                        <a href="#" class="nav-link">Reports</a>
-                        <a href="#" class="nav-link">Settings</a>
+                        <a href="{{ url_for('visualizations_page') }}#insights" class="nav-link">AI Insights</a>
+                        <a href="{{ url_for('visualizations_page') }}#forecasting" class="nav-link">Forecasting</a>
                     </nav>
                     <!-- Right: User Dropdown -->
                     <div class="relative flex items-center gap-2">

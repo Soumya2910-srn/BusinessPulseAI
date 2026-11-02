@@ -679,6 +679,55 @@ def api_chat():
         return {'status': 'success', 'response': reply}
     except Exception as e:
         return {'status': 'error', 'message': str(e)}, 500
+
+@app.route('/api/analysis', methods=['GET'])
+@app.route('/api/analysis/<int:analysis_id>', methods=['GET'])
+def api_get_analysis(analysis_id=None):
+    user_id = session.get('user_id')
+    if not user_id:
+        return {'status': 'error', 'message': 'Authentication required. Please log in.'}, 401
+
+    if analysis_id:
+        record = AnalysisHistory.query.filter_by(id=analysis_id, user_id=user_id).first()
+        if not record:
+            return {'status': 'error', 'message': 'Analysis record not found'}, 404
+        return {
+            'status': 'success',
+            'analysis': {
+                'id': record.id,
+                'created_at': record.created_at.isoformat() if record.created_at else None,
+                'prev_filename': record.prev_filename,
+                'curr_filename': record.curr_filename,
+                'summary': {
+                    'curr_revenue': record.curr_revenue,
+                    'prev_revenue': record.prev_revenue,
+                    'revenue_growth': record.revenue_growth,
+                    'units_growth': record.units_growth,
+                    'customers_growth': record.customers_growth,
+                    'forecasted_revenue': record.forecasted_revenue
+                }
+            }
+        }, 200
+
+    records = AnalysisHistory.query.filter_by(user_id=user_id).order_by(AnalysisHistory.created_at.desc()).all()
+    analyses = []
+    for r in records:
+        analyses.append({
+            'id': r.id,
+            'created_at': r.created_at.isoformat() if r.created_at else None,
+            'prev_filename': r.prev_filename,
+            'curr_filename': r.curr_filename,
+            'summary': {
+                'curr_revenue': r.curr_revenue,
+                'prev_revenue': r.prev_revenue,
+                'revenue_growth': r.revenue_growth,
+                'units_growth': r.units_growth,
+                'customers_growth': r.customers_growth,
+                'forecasted_revenue': r.forecasted_revenue
+            }
+        })
+
+    return {'status': 'success', 'analyses': analyses}, 200
         
 @app.route('/visualizations')
 @login_required

@@ -247,6 +247,14 @@
                             class="prompt-chip px-3 py-1.5 rounded-full text-xs text-gray-700 hover:text-sky-700">
                             💡 Marketing impact on sales?
                         </button>
+                        <button onclick="usePrompt('What are our top AI growth opportunities and risk mitigations?')"
+                            class="prompt-chip px-3 py-1.5 rounded-full text-xs text-gray-700 hover:text-sky-700">
+                            🎯 AI growth opportunities & risks
+                        </button>
+                        <button onclick="usePrompt('What is our inventory stockout risk and recommended reorders?')"
+                            class="prompt-chip px-3 py-1.5 rounded-full text-xs text-gray-700 hover:text-sky-700">
+                            🚨 Inventory stockout & reorder
+                        </button>
                     </div>
                 </div>
 
@@ -656,11 +664,18 @@
 
         async function fetchAnalyses() {
             const listEl = document.getElementById('analysis-list');
-            listEl.innerHTML = '<p class="text-gray-400 text-sm text-center py-6">Loading…</p>';
+            listEl.innerHTML = '<p class="text-gray-400 text-sm text-center py-6">Loading analyses…</p>';
             try {
                 const res = await fetch('/api/analysis');
+                const contentType = res.headers.get('content-type') || '';
+                if (!contentType.includes('application/json')) {
+                    if (res.status === 401 || res.redirected) {
+                        throw new Error('Your session has expired. Please log in again.');
+                    }
+                    throw new Error('Could not retrieve analyses from server.');
+                }
                 const data = await res.json();
-                if (!res.ok || data.status !== 'success') throw new Error(data.message || 'Failed');
+                if (!res.ok || data.status !== 'success') throw new Error(data.message || 'Failed to load analyses');
                 const analyses = data.analyses;
                 if (analyses.length === 0) {
                     listEl.innerHTML = '<p class="text-gray-400 text-sm text-center py-8">No saved analyses found. Upload datasets first!</p>';
