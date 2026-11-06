@@ -15,6 +15,10 @@ from ai_insights import generate_ai_insights
 from forecasting import generate_complete_forecast, simulate_forecast_scenario
 from flask_mail import Mail, Message
 from email_validator import validate_email, EmailNotValidError
+import smtplib
+import ssl
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 load_dotenv()
 app = Flask(__name__)
@@ -41,23 +45,51 @@ app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__fil
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Flask-Mail configuration
+mail_port = int(os.environ.get('MAIL_PORT', 587))
 app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
-app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
-app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'True') == 'True'
+app.config['MAIL_PORT'] = mail_port
+app.config['MAIL_USE_SSL'] = os.environ.get('MAIL_USE_SSL', 'True' if mail_port == 465 else 'False') == 'True'
+app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'True' if mail_port == 587 else 'False') == 'True'
 app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
 mail = Mail(app)
 
 def send_otp_email(to_email, otp, subject='Your OTP for BusinessPulse AI'):
     print(f"[OTP DEBUG] Generated OTP for {to_email}: {otp}")
+    username = app.config.get('MAIL_USERNAME')
+    password = app.config.get('MAIL_PASSWORD')
+    server = app.config.get('MAIL_SERVER', 'smtp.gmail.com')
+    port = int(app.config.get('MAIL_PORT', 587))
+    
+    # 1. Primary: Direct smtplib with explicit SSL context & 15s timeout
     try:
-        msg = Message(subject, sender=app.config['MAIL_USERNAME'], recipients=[to_email])
-        msg.body = f'Your One-Time Password is: {otp}\n\nPlease use this to complete your action. It expires in 90 seconds.'
-        mail.send(msg)
-        return True
+        msg = MIMEMultipart()
+        msg['From'] = f"BusinessPulse AI <{username}>"
+        msg['To'] = to_email
+        msg['Subject'] = subject
+        
+        body = f"""Hello,\nYour One-Time Password (OTP) for BusinessPulse AI is: {otp}\n\nThis code expires in 90 seconds. Please enter it to complete verification.\n\nIf you did not request this code, please ignore this email.\n\nBest regards,\nBusinessPulse AI Team"""
+        msg.attach(MIMEText(body, 'plain'))
+        
+        context = ssl.create_default_context()
+        with smtplib.SMTP(server, port, timeout=15) as s:
+            s.starttls(context=context)
+            s.login(username, password)
+            s.send_message(msg)
+        print(f"[OTP] Successfully sent OTP email to {to_email} via direct SMTP!")
+        return True, None
     except Exception as e:
-        print(f"Error sending email: {e}")
-        return False
+        print(f"[OTP] Direct SMTP attempt failed ({e}), trying Flask-Mail fallback...")
+    
+    # 2. Fallback: Flask-Mail
+    try:
+        fmsg = Message(subject, sender=username, recipients=[to_email])
+        fmsg.body = f'Your One-Time Password is: {otp}\n\nPlease use this to complete your action. It expires in 90 seconds.'
+        mail.send(fmsg)
+        return True, None
+    except Exception as e2:
+        print(f"Error sending email via Flask-Mail fallback: {e2}")
+        return False, str(e2)
     
 # Database connection setup
 # Attempts MySQL database connection; falls back to local SQLite if MySQL server is unavailable
