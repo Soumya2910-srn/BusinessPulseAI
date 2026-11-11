@@ -9,7 +9,6 @@ from forecasting import (
     compute_inventory_forecast
 )
 
-# Pure Python Linear Regression implementation (gradient descent / normal equation)
 class SimpleLinearRegression:
     def __init__(self):
         self.slope = 0.0

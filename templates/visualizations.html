@@ -338,6 +338,31 @@
         .pulse-critical {
             animation: pulse-ring 2s ease-in-out infinite;
         }
+
+        /* ── Print Media Optimization ── */
+        @media print {
+            .nav-outer, .tab-nav, #lottie-popup, header, button, .no-print, a[href*="dashboard"] {
+                display: none !important;
+            }
+            body {
+                background: #ffffff !important;
+                color: #000000 !important;
+            }
+            .tab-panel {
+                display: block !important;
+                page-break-after: auto;
+            }
+            .card {
+                box-shadow: none !important;
+                border: 1px solid #cbd5e1 !important;
+                break-inside: avoid;
+                margin-bottom: 1.5rem !important;
+            }
+            main {
+                padding: 0 !important;
+                max-width: 100% !important;
+            }
+        }
     </style>
 </head>
 
@@ -380,14 +405,36 @@
                 <h1 class="text-3xl font-extrabold text-gray-900">Interactive Data Visualizations</h1>
                 <p class="text-sm text-gray-500 mt-1">
                     {% if selected_record %}
-                    Viewing saved record from <strong>{{ selected_record.created_at.strftime('%b %d, %Y - %I:%M %p')
-                        }}</strong> ({{ selected_record.prev_filename }} & {{ selected_record.curr_filename }})
+                    Viewing saved record from <strong>{{ selected_record.created_at.strftime('%b %d, %Y - %I:%M %p') }}</strong> ({{ selected_record.prev_filename }} & {{ selected_record.curr_filename }})
+                    <span class="inline-flex items-center gap-1 ml-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-sky-100 text-sky-800 border border-sky-200">
+                        <i data-lucide="hash" class="w-3 h-3"></i> Analysis #{{ selected_record.id }}
+                    </span>
                     {% else %}
                     Comparing baseline month metrics against current performance and machine learning forecasts.
                     {% endif %}
                 </p>
             </div>
             <div class="flex flex-wrap items-center gap-3">
+                {% if selected_record %}
+                <a href="{{ url_for('export_analysis_pdf', history_id=selected_record.id) }}"
+                    class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold text-white shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5"
+                    style="background: linear-gradient(135deg, #0284c7 0%, #7c3aed 100%);"
+                    title="Export complete executive PDF report for this analysis">
+                    <i data-lucide="file-down" class="w-4 h-4"></i> Export PDF Report
+                </a>
+                {% else %}
+                <a href="{{ url_for('export_analysis_pdf') }}"
+                    class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold text-white shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5"
+                    style="background: linear-gradient(135deg, #0284c7 0%, #7c3aed 100%);"
+                    title="Export executive PDF report">
+                    <i data-lucide="file-down" class="w-4 h-4"></i> Export PDF Report
+                </a>
+                {% endif %}
+                <button type="button" onclick="window.print()"
+                    class="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-full text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 shadow-sm transition-all"
+                    title="Print or Save interactive dashboard to PDF">
+                    <i data-lucide="printer" class="w-4 h-4 text-gray-500"></i> Print Dashboard
+                </button>
                 <a href="{{ url_for('dashboard') }}" class="nav-btn-primary">
                     <i data-lucide="upload-cloud" class="w-4 h-4"></i> Upload New Dataset
                 </a>

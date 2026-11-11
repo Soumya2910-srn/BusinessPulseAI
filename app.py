@@ -1,4 +1,4 @@
-from flask import Flask, redirect, url_for, render_template, flash, session, request, jsonify
+from flask import Flask, redirect, url_for, render_template, flash, session, request, jsonify, Response
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from form import Login, Signup, ProfileUpdateForm
@@ -135,9 +135,39 @@ class AnalysisHistory(db.Model):
     forecasted_revenue = db.Column(db.Float, default=0.0)
     analytics_json = db.Column(db.Text, nullable=False)
 
-# Initialize Database
+# Master Admin Email configuration
+ADMIN_EMAILS = {'businesspukseaiadmin@gmail.com', 'businesspulseaiadmin@gmail.com'}
+
+def is_admin_email(email_str):
+    if not email_str:
+        return False
+    return email_str.strip().lower() in ADMIN_EMAILS
+
+# Initialize Database and Seed Admin User
+def seed_admin_user():
+    try:
+        master_email = 'businesspukseaiadmin@gmail.com'
+        existing = User.query.filter(User.email.ilike(master_email)).first()
+        if not existing:
+            master_admin = User(
+                username='Admin',
+                email=master_email,
+                password='',
+                role='admin'
+            )
+            db.session.add(master_admin)
+            db.session.commit()
+            print(f"[INIT] Seeded Master Admin user: {master_email} (Role: admin)")
+        elif existing.role != 'admin':
+            existing.role = 'admin'
+            db.session.commit()
+            print(f"[INIT] Elevated {master_email} to admin role.")
+    except Exception as e:
+        print(f"[INIT] Note on admin seed: {e}")
+
 with app.app_context():
     db.create_all()
+    seed_admin_user()
 
 # ─── Decorators ─────────────────────────────────────────────────────────────
 
@@ -182,16 +212,27 @@ def get_user_analytics(user_id):
 
 # Auth Routes 
 
+def get_post_auth_redirect():
+    """Direct admins to the Admin Panel and standard users to the main Dashboard."""
+    if 'user_id' in session:
+        user = User.query.get(session['user_id'])
+        if user and user.role == 'admin':
+            return redirect(url_for('admin_panel'))
+        return redirect(url_for('dashboard'))
+    return None
+
 @app.route('/')
 def landingpage():
-    if 'user_id' in session:
-        return redirect(url_for('dashboard'))
+    auth_redirect = get_post_auth_redirect()
+    if auth_redirect:
+        return auth_redirect
     return render_template("landingpage.html")
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
-    if 'user_id' in session:
-        return redirect(url_for('dashboard'))
+    auth_redirect = get_post_auth_redirect()
+    if auth_redirect:
+        return auth_redirect
     form = Signup()
     if form.validate_on_submit():
         raw_email = form.email.data.strip()
@@ -209,7 +250,7 @@ def signup():
             flash('Username already exists. Please choose a different username.', 'error')
             return render_template('signup.html', form=form)
 
-        existing_email = User.query.filter_by(email=email).first()
+        existing_email = User.query.filter(User.email.ilike(email)).first()
         if existing_email:
             flash('An account with this email already exists. Please sign in directly.', 'error')
             return render_template('signup.html', form=form)
@@ -225,7 +266,11 @@ def signup():
         session.pop('login_data', None)
         session.pop('login_email', None)
 
-        sent, err_msg = send_otp_email(email, otp, subject='Verify your BusinessPulse AI Account')
+        subject = 'Verify your BusinessPulse AI Account'
+        if is_admin_email(email):
+            subject = 'Verify your BusinessPulse AI Administrator Account'
+
+        sent, err_msg = send_otp_email(email, otp, subject=subject)
         if sent:
             flash(f'An OTP has been sent to {email}. Please verify to complete account setup.', 'success')
         else:
@@ -241,8 +286,9 @@ def signup():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if 'user_id' in session:
-        return redirect(url_for('dashboard'))
+    auth_redirect = get_post_auth_redirect()
+    if auth_redirect:
+        return auth_redirect
     form = Login()
     if form.validate_on_submit():
         raw_email = form.email.data.strip()
@@ -255,20 +301,42 @@ def login():
         except Exception:
             email = raw_email.lower()
 
-        user = User.query.filter_by(email=email).first()
+        user = User.query.filter(User.email.ilike(email)).first()
+        # If the master admin email is entered and not yet registered in database, auto-provision
+        if not user and is_admin_email(email):
+            base_un = 'Admin'
+            if User.query.filter_by(username=base_un).first():
+                base_un = f"Admin_{random.randint(100, 999)}"
+            user = User(
+                username=base_un,
+                email=email.lower(),
+                password='',
+                role='admin'
+            )
+            db.session.add(user)
+            db.session.commit()
+            print(f"[AUTH] Auto-created master admin account for {email}")
+
         if user:
+            # Enforce admin role if this is an admin email
+            if is_admin_email(user.email) and user.role != 'admin':
+                user.role = 'admin'
+                db.session.commit()
+
             # Generate OTP
             otp = str(random.randint(100000, 999999))
             session['otp'] = otp
             session['otp_time'] = datetime.utcnow().timestamp()
             session['login_data'] = {
                 'user_id': user.id,
-                'username': user.username
+                'username': user.username,
+                'role': user.role
             }
             session['login_email'] = user.email
             session.pop('signup_data', None)
 
-            sent, err_msg = send_otp_email(user.email, otp, subject='Your BusinessPulse AI Login OTP')
+            subject = 'Your BusinessPulse AI Admin Login OTP' if user.role == 'admin' else 'Your BusinessPulse AI Login OTP'
+            sent, err_msg = send_otp_email(user.email, otp, subject=subject)
             if sent:
                 flash(f'Login OTP has been sent to {user.email}.', 'success')
             else:
@@ -286,8 +354,9 @@ def login():
 
 @app.route('/verify_otp', methods=['GET', 'POST'])
 def verify_otp():
-    if 'user_id' in session:
-        return redirect(url_for('dashboard'))
+    auth_redirect = get_post_auth_redirect()
+    if auth_redirect:
+        return auth_redirect
 
     if request.method == 'GET':
         if 'otp' not in session and 'signup_data' not in session and 'login_data' not in session:
@@ -312,12 +381,12 @@ def verify_otp():
             # Signup flow: create account and direct login
             if 'signup_data' in session:
                 data = session.pop('signup_data')
-                is_first_user = User.query.count() == 0
+                is_admin = is_admin_email(data['email']) or (User.query.count() == 0)
                 new_user = User(
                     username=data['username'],
                     email=data['email'],
                     password='',
-                    role='admin' if is_first_user else 'user'
+                    role='admin' if is_admin else 'user'
                 )
                 db.session.add(new_user)
                 db.session.commit()
@@ -326,20 +395,37 @@ def verify_otp():
                 session.pop('login_data', None)
                 session.pop('login_email', None)
 
-                # Direct login on first-time account creation
+                # Direct login on account creation
                 session['user_id'] = new_user.id
                 session['username'] = new_user.username
+                session['role'] = new_user.role
+
+                if new_user.role == 'admin':
+                    flash(f'Welcome, Administrator {new_user.username}! Navigated to the Admin Dashboard.', 'success')
+                    return redirect(url_for('admin_panel'))
+                flash(f'Welcome to BusinessPulse AI, {new_user.username}!', 'success')
                 return redirect(url_for('dashboard'))
 
             # Login flow
             elif 'login_data' in session:
                 data = session.pop('login_data')
-                session['user_id'] = data['user_id']
-                session['username'] = data['username']
-                session.pop('otp', None)
-                session.pop('otp_time', None)
-                session.pop('login_email', None)
-                return redirect(url_for('dashboard'))
+                user = User.query.get(data['user_id'])
+                if user:
+                    if is_admin_email(user.email) and user.role != 'admin':
+                        user.role = 'admin'
+                        db.session.commit()
+                    session['user_id'] = user.id
+                    session['username'] = user.username
+                    session['role'] = user.role
+                    session.pop('otp', None)
+                    session.pop('otp_time', None)
+                    session.pop('login_email', None)
+
+                    if user.role == 'admin':
+                        flash(f'Welcome to Admin Dashboard, Administrator {user.username}!', 'success')
+                        return redirect(url_for('admin_panel'))
+                    flash(f'Welcome back, {user.username}!', 'success')
+                    return redirect(url_for('dashboard'))
         else:
             flash('Invalid OTP. Please check the 6-digit code and try again.', 'error')
 
@@ -405,9 +491,41 @@ def admin_panel():
     user_stats = {}
     for u in all_users:
         user_stats[u.id] = AnalysisHistory.query.filter_by(user_id=u.id).count()
+    
     total_analyses = AnalysisHistory.query.count()
-    return render_template('admin.html', users=all_users, user_stats=user_stats,
-                           current_user=current_user, total_analyses=total_analyses)
+    all_records = AnalysisHistory.query.order_by(AnalysisHistory.created_at.desc()).all()
+    
+    # Platform totals
+    total_revenue_sum = sum(a.curr_revenue or 0.0 for a in all_records)
+    total_forecast_sum = sum(a.forecasted_revenue or 0.0 for a in all_records)
+    
+    user_map = {u.id: u for u in all_users}
+    analyses_display = []
+    for a in all_records[:50]:
+        analyses_display.append({
+            'record': a,
+            'user': user_map.get(a.user_id)
+        })
+
+    system_info = {
+        'db_engine': 'MySQL' if 'mysql' in app.config['SQLALCHEMY_DATABASE_URI'] else 'SQLite (Embedded)',
+        'mail_server': app.config.get('MAIL_SERVER', 'smtp.gmail.com'),
+        'mail_port': app.config.get('MAIL_PORT', 587),
+        'mail_user': app.config.get('MAIL_USERNAME') or 'smtp.gmail.com',
+        'master_admin': 'businesspukseaiadmin@gmail.com',
+        'gemini_configured': bool(os.environ.get('GEMINI_API_KEY'))
+    }
+
+    return render_template('admin.html',
+                           users=all_users,
+                           user_stats=user_stats,
+                           current_user=current_user,
+                           total_analyses=total_analyses,
+                           total_revenue_sum=total_revenue_sum,
+                           total_forecast_sum=total_forecast_sum,
+                           analyses_display=analyses_display,
+                           system_info=system_info,
+                           is_admin_email=is_admin_email)
 
 @app.route('/admin/toggle_role/<int:user_id>', methods=['POST'])
 @admin_required
@@ -416,6 +534,8 @@ def toggle_role(user_id):
     # Prevent admin from demoting themselves
     if user.id == session['user_id']:
         return {'status': 'error', 'message': 'You cannot change your own role.'}, 400
+    if is_admin_email(user.email):
+        return {'status': 'error', 'message': 'The Master Admin account role is protected and cannot be demoted.'}, 400
     user.role = 'user' if user.role == 'admin' else 'admin'
     db.session.commit()
     return {'status': 'success', 'new_role': user.role, 'message': f'Role updated to {user.role}.'}, 200
@@ -426,11 +546,71 @@ def admin_delete_user(user_id):
     if user_id == session['user_id']:
         return {'status': 'error', 'message': 'You cannot delete your own account.'}, 400
     user = User.query.get_or_404(user_id)
+    if is_admin_email(user.email):
+        return {'status': 'error', 'message': 'The Master Admin account is protected and cannot be deleted.'}, 400
     # Delete user's history records too
     AnalysisHistory.query.filter_by(user_id=user_id).delete()
     db.session.delete(user)
     db.session.commit()
     return {'status': 'success', 'message': f'User {user.username} deleted successfully.'}, 200
+
+@app.route('/admin/export_users_csv')
+@admin_required
+def admin_export_users_csv():
+    import io, csv
+    from flask import Response
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['User ID', 'Username', 'Email', 'Role', 'Total Analyses Run', 'Registration Date'])
+    all_users = User.query.order_by(User.id.asc()).all()
+    for u in all_users:
+        count = AnalysisHistory.query.filter_by(user_id=u.id).count()
+        writer.writerow([
+            u.id,
+            u.username,
+            u.email,
+            u.role,
+            count,
+            u.created_at.strftime('%Y-%m-%d %H:%M:%S') if u.created_at else 'N/A'
+        ])
+    output.seek(0)
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=BusinessPulse_Admin_Users_Audit.csv'}
+    )
+
+@app.route('/admin/export_analyses_csv')
+@admin_required
+def admin_export_analyses_csv():
+    import io, csv
+    from flask import Response
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['Analysis ID', 'User ID', 'Username', 'User Email', 'Previous Dataset File', 'Current Dataset File', 'Previous Revenue (INR)', 'Current Revenue (INR)', 'Revenue Growth (%)', 'Forecasted Revenue (INR)', 'Created At'])
+    records = AnalysisHistory.query.order_by(AnalysisHistory.created_at.desc()).all()
+    user_map = {u.id: u for u in User.query.all()}
+    for r in records:
+        u = user_map.get(r.user_id)
+        writer.writerow([
+            r.id,
+            r.user_id,
+            u.username if u else 'Deleted User',
+            u.email if u else 'N/A',
+            r.prev_filename or 'N/A',
+            r.curr_filename or 'N/A',
+            r.prev_revenue,
+            r.curr_revenue,
+            r.revenue_growth,
+            r.forecasted_revenue,
+            r.created_at.strftime('%Y-%m-%d %H:%M:%S') if r.created_at else 'N/A'
+        ])
+    output.seek(0)
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=BusinessPulse_System_Analyses_Log.csv'}
+    )
 
 # ─── Core App Routes ─────────────────────────────────────────────────────────
 
@@ -767,10 +947,15 @@ def visualizations_page():
     # Check if a specific history ID was requested
     history_id = request.args.get('history_id')
     user_id = session.get('user_id')
+    current_user = User.query.get(user_id)
     selected_record = None
 
     if history_id:
-        record = AnalysisHistory.query.filter_by(id=history_id, user_id=user_id).first()
+        if current_user and current_user.role == 'admin':
+            record = AnalysisHistory.query.filter_by(id=history_id).first()
+        else:
+            record = AnalysisHistory.query.filter_by(id=history_id, user_id=user_id).first()
+
         if record:
             analytics = json.loads(record.analytics_json)
             selected_record = record
@@ -785,8 +970,10 @@ def visualizations_page():
 
     # Fetch user's saved history list
     history_list = AnalysisHistory.query.filter_by(user_id=user_id).order_by(AnalysisHistory.created_at.desc()).all()
+    if not selected_record and history_list:
+        selected_record = history_list[0]
     
-    return render_template("visualizations.html", analytics=analytics, history_list=history_list, selected_record=selected_record)
+    return render_template("visualizations.html", analytics=analytics, history_list=history_list, selected_record=selected_record, user=current_user)
 
 # ─── Task 7: AI Insights Engine API Endpoints ────────────────────────────────
 
@@ -956,6 +1143,180 @@ def api_inventory_forecast():
         'status': 'success',
         'inventory_forecast': inv_forecast
     }, 200
+
+# ─── Report Export & Anomaly / Stockout Notification Endpoints ───────────────
+
+@app.route('/api/export/csv')
+@login_required
+def api_export_csv():
+    """Generates and downloads a structured executive business summary CSV."""
+    import io, csv
+    from flask import Response
+    user_id = session.get('user_id')
+    analytics = get_user_analytics(user_id)
+    if not analytics:
+        flash('No analytics data available to export.', 'error')
+        return redirect(url_for('dashboard'))
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    # 1. Executive Summary
+    writer.writerow(['BUSINESS PULSE AI - EXECUTIVE SUMMARY & ANALYTICS REPORT'])
+    writer.writerow([])
+    summary = analytics.get('summary', {})
+    writer.writerow(['EXECUTIVE KPI SUMMARY'])
+    writer.writerow(['Metric', 'Previous Month', 'Current Month', 'Growth / Momentum'])
+    writer.writerow(['Total Revenue (INR)', summary.get('prev_revenue', 0), summary.get('curr_revenue', 0), f"{summary.get('revenue_growth', 0)}%"])
+    writer.writerow(['Units Sold', summary.get('prev_units', 0), summary.get('curr_units', 0), f"{summary.get('units_growth', 0)}%"])
+    writer.writerow(['New Customers', summary.get('prev_customers', 0), summary.get('curr_customers', 0), f"{summary.get('customers_growth', 0)}%"])
+    writer.writerow(['Marketing Spend (INR)', summary.get('prev_marketing', 0), summary.get('curr_marketing', 0), ''])
+    writer.writerow(['ML Projected Revenue Growth', '', '', f"{summary.get('ml_projected_growth', 0)}%"])
+    writer.writerow([])
+
+    # 2. Category Performance
+    writer.writerow(['PRODUCT CATEGORY PERFORMANCE BREAKDOWN'])
+    writer.writerow(['Category', 'Revenue (INR)', 'Units Sold', 'Average Unit Price (INR)', 'Estimated Profit (INR)'])
+    curr_cats = analytics.get('current_month', {}).get('category_stats', {})
+    for cat, stats in curr_cats.items():
+        writer.writerow([cat, stats.get('revenue', 0), stats.get('units', 0), stats.get('avg_price', 0), stats.get('profit', 0)])
+    writer.writerow([])
+
+    # 3. Revenue Forecast Projections
+    writer.writerow(['REVENUE FORECAST PROJECTIONS'])
+    writer.writerow(['Forecast Horizon', 'Conservative (INR)', 'Expected (INR)', 'Optimistic (INR)'])
+    rev_fc = analytics.get('forecasting', {}).get('revenue_forecast', {})
+    for h, vals in rev_fc.items():
+        writer.writerow([f"{h} Days", vals.get('conservative', 0), vals.get('expected', 0), vals.get('optimistic', 0)])
+    writer.writerow([])
+
+    # 4. Inventory Health & Optimization
+    writer.writerow(['INVENTORY OPTIMIZATION & STOCK HEALTH'])
+    writer.writerow(['Category', 'Daily Velocity (Units/Day)', 'Days of Stock Remaining', 'Stockout Risk Status', 'Safety Stock', 'Reorder Point (ROP)', 'Recommended Reorder Quantity', 'Restock Capital Required (INR)'])
+    inv_fc = analytics.get('forecasting', {}).get('inventory_forecast', {})
+    for cat, item in inv_fc.items():
+        writer.writerow([
+            cat,
+            item.get('daily_run_rate', 0),
+            item.get('days_of_stock_remaining', 0),
+            item.get('stockout_risk_status', 'Unknown'),
+            item.get('safety_stock', 0),
+            item.get('reorder_point', 0),
+            item.get('recommended_reorder_qty', 0),
+            item.get('restock_capital_required', 0)
+        ])
+
+    output.seek(0)
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=BusinessPulse_Analytics_Summary.csv'}
+    )
+
+@app.route('/analysis/<int:history_id>/export_pdf')
+@app.route('/analysis/latest/export_pdf', defaults={'history_id': None})
+@app.route('/export_pdf', defaults={'history_id': None})
+@login_required
+def export_analysis_pdf(history_id):
+    """
+    Exports a comprehensive, professional executive PDF report for a particular analysis run.
+    Validates ownership or admin privileges before streaming the PDF.
+    """
+    user_id = session.get('user_id')
+    current_user = User.query.get(user_id)
+    
+    if history_id is None:
+        history_id = request.args.get('history_id', type=int)
+
+    if history_id:
+        if current_user and current_user.role == 'admin':
+            record = AnalysisHistory.query.filter_by(id=history_id).first()
+        else:
+            record = AnalysisHistory.query.filter_by(id=history_id, user_id=user_id).first()
+    else:
+        record = AnalysisHistory.query.filter_by(user_id=user_id).order_by(AnalysisHistory.created_at.desc()).first()
+
+    if not record:
+        flash('Selected analysis record not found or access denied.', 'error')
+        return redirect(url_for('visualizations_page'))
+
+    # Load owner user for report branding
+    owner_user = User.query.get(record.user_id) if record.user_id else current_user
+
+    try:
+        from pdf_report_generator import generate_analysis_pdf_bytes
+        pdf_bytes = generate_analysis_pdf_bytes(record, user=owner_user)
+        
+        as_attachment = request.args.get('preview') != '1'
+        filename = f"BusinessPulse_Analysis_{record.id}_Report.pdf"
+        disposition = 'attachment' if as_attachment else 'inline'
+        
+        return Response(
+            pdf_bytes,
+            mimetype='application/pdf',
+            headers={
+                'Content-Disposition': f'{disposition}; filename={filename}',
+                'Cache-Control': 'no-cache, no-store, must-revalidate'
+            }
+        )
+    except Exception as e:
+        print(f"Error generating PDF report for analysis {record.id}: {e}")
+        flash(f"Failed to generate PDF report: {e}", "error")
+        return redirect(url_for('visualizations_page', history_id=record.id))
+
+@app.route('/api/alerts/send_stockout_email', methods=['POST'])
+@login_required
+def api_send_stockout_email():
+    """Triggers an email notification warning of categories with critical stockout risk."""
+    user_id = session.get('user_id')
+    user = User.query.get(user_id)
+    analytics = get_user_analytics(user_id)
+    if not analytics or 'forecasting' not in analytics:
+        return {'status': 'error', 'message': 'No inventory forecast data available.'}, 400
+
+    inv_fc = analytics.get('forecasting', {}).get('inventory_forecast', {})
+    critical_items = []
+    for cat, item in inv_fc.items():
+        days_rem = item.get('days_of_stock_remaining', 999)
+        risk = item.get('stockout_risk_status', '')
+        if risk == 'Critical' or (isinstance(days_rem, (int, float)) and days_rem < 7):
+            critical_items.append({
+                'category': cat,
+                'days': days_rem,
+                'rop': item.get('reorder_point', 0),
+                'rec_order': item.get('recommended_reorder_qty', 0),
+                'capital': item.get('restock_capital_required', 0)
+            })
+
+    if not critical_items:
+        return {'status': 'info', 'message': 'Inventory health is stable. No critical stockout warnings detected.'}, 200
+
+    lines = [f"• {it['category']}: {it['days']} days remaining. Reorder Quantity: {it['rec_order']} units (Capital: INR {it['capital']:,.2f})" for it in critical_items]
+    items_text = "\n".join(lines)
+    subject = f"⚠️ Critical Inventory Stockout Warning ({len(critical_items)} Categories at Risk)"
+    body = f"""Hello {user.username},\n\nThe BusinessPulse AI Inventory Monitor has identified {len(critical_items)} category/categories approaching imminent stockout:\n\n{items_text}\n\nPlease take immediate replenishment action to prevent revenue loss.\n\nBest regards,\nBusinessPulse AI Team"""
+
+    # Dispatch email
+    username = app.config.get('MAIL_USERNAME')
+    password = app.config.get('MAIL_PASSWORD')
+    server = app.config.get('MAIL_SERVER', 'smtp.gmail.com')
+    port = int(app.config.get('MAIL_PORT', 587))
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = f"BusinessPulse AI Alerts <{username}>"
+        msg['To'] = user.email
+        msg['Subject'] = subject
+        msg.attach(MIMEText(body, 'plain'))
+        context = ssl.create_default_context()
+        with smtplib.SMTP(server, port, timeout=15) as s:
+            s.starttls(context=context)
+            s.login(username, password)
+            s.send_message(msg)
+        print(f"[ALERT] Stockout alert email sent to {user.email}")
+        return {'status': 'success', 'message': f'Stockout alert notification successfully dispatched to {user.email}!'}, 200
+    except Exception as e:
+        print(f"[ALERT FALLBACK] Could not send via SMTP ({e}). Dev mode notification logged.")
+        return {'status': 'success', 'message': f'Stockout alert generated for {user.email} (Email logged to server console).'}, 200
 
 if __name__ == "__main__":
     app.run(debug=True)
