@@ -1,0 +1,1583 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizations - BusinessPulse AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Montserrat:wght@500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.9.4/dist/dotlottie-wc.js" type="module"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+            background: linear-gradient(135deg, #e3f2fd 0%, #fff8e1 50%, #fce4ec 100%);
+            color: #1a1a2e;
+            min-height: 100vh;
+        }
+
+        .bg-dots {
+            background-image: radial-gradient(circle, #29A8E318 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+
+        .nav-outer {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            padding: 14px 20px 0;
+        }
+
+        header {
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(28px) saturate(180%);
+            border: 1.5px solid rgba(255, 255, 255, 0.75);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(41, 168, 227, 0.13);
+        }
+
+        .card {
+            background: #ffffff;
+            border: 1px solid #e5eaf5;
+            border-radius: 1.5rem;
+            box-shadow: 0 4px 24px rgba(41, 168, 227, 0.07);
+        }
+
+        .card-top-bar {
+            height: 4px;
+            border-radius: 1.5rem 1.5rem 0 0;
+            background: linear-gradient(90deg, #29A8E3, #F5A623, #E91E9A);
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            border-radius: 50px;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        .nav-btn-primary {
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: white;
+            padding: 0.5rem 1.4rem;
+            border-radius: 50px;
+            background: linear-gradient(135deg, #29A8E3 0%, #9b59b6 50%, #E91E9A 100%);
+            box-shadow: 0 4px 18px rgba(41, 168, 227, 0.38);
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(41, 168, 227, 0.45);
+        }
+
+        /* ── Section Tab Navigation ── */
+        .tab-nav {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            padding: 0.6rem 1.3rem;
+            border-radius: 12px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            border: 1.5px solid #e5eaf5;
+            background: white;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tab-btn:hover {
+            background: #f0f9ff;
+            border-color: #bae6fd;
+            color: #0284c7;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #29A8E3, #9b59b6);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 4px 16px rgba(41, 168, 227, 0.3);
+        }
+
+        .tab-panel {
+            display: none;
+            animation: fadeSlideUp 0.4s ease both;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        /* ── Insight cards ── */
+        .insight-card {
+            background: white;
+            border: 1px solid #e5eaf5;
+            border-radius: 1rem;
+            padding: 1.25rem;
+            transition: all 0.25s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .insight-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(41, 168, 227, 0.1);
+        }
+
+        .insight-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            border-radius: 4px 0 0 4px;
+        }
+
+        .insight-card.blue::before {
+            background: linear-gradient(180deg, #29A8E3, #3b82f6);
+        }
+
+        .insight-card.green::before {
+            background: linear-gradient(180deg, #10b981, #34d399);
+        }
+
+        .insight-card.amber::before {
+            background: linear-gradient(180deg, #f59e0b, #fbbf24);
+        }
+
+        .insight-card.rose::before {
+            background: linear-gradient(180deg, #ef4444, #f87171);
+        }
+
+        .insight-card.purple::before {
+            background: linear-gradient(180deg, #8b5cf6, #a78bfa);
+        }
+
+        .insight-card.pink::before {
+            background: linear-gradient(180deg, #ec4899, #f472b6);
+        }
+
+        /* ── Severity badges ── */
+        .badge {
+            padding: 3px 10px;
+            border-radius: 50px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+        }
+
+        .badge-critical {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .badge-warning {
+            background: #fffbeb;
+            color: #d97706;
+            border: 1px solid #fde68a;
+        }
+
+        .badge-moderate {
+            background: #f0fdf4;
+            color: #16a34a;
+            border: 1px solid #bbf7d0;
+        }
+
+        .badge-high {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .badge-medium {
+            background: #fffbeb;
+            color: #d97706;
+            border: 1px solid #fde68a;
+        }
+
+        .badge-low {
+            background: #f0fdf4;
+            color: #16a34a;
+            border: 1px solid #bbf7d0;
+        }
+
+        .badge-immediate {
+            background: linear-gradient(135deg, #fef2f2, #fff1f2);
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .badge-short-term {
+            background: #eff6ff;
+            color: #2563eb;
+            border: 1px solid #bfdbfe;
+        }
+
+        .badge-long-term {
+            background: #f5f3ff;
+            color: #7c3aed;
+            border: 1px solid #ddd6fe;
+        }
+
+        /* ── Inventory risk badges ── */
+        .risk-critical {
+            background: #fef2f2;
+            border: 1.5px solid #fecaca;
+        }
+
+        .risk-warning {
+            background: #fffbeb;
+            border: 1.5px solid #fde68a;
+        }
+
+        .risk-healthy {
+            background: #f0fdf4;
+            border: 1.5px solid #bbf7d0;
+        }
+
+        .risk-overstocked {
+            background: #eff6ff;
+            border: 1.5px solid #bfdbfe;
+        }
+
+        /* ── Simulator panel ── */
+        .sim-input {
+            width: 100%;
+            padding: 0.65rem 1rem;
+            border: 1.5px solid #e5eaf5;
+            border-radius: 10px;
+            font-size: 0.88rem;
+            font-family: inherit;
+            transition: border-color 0.2s ease;
+        }
+
+        .sim-input:focus {
+            outline: none;
+            border-color: #29A8E3;
+            box-shadow: 0 0 0 3px rgba(41, 168, 227, 0.12);
+        }
+
+        /* ── Periodic Lottie Popup ── */
+        #lottie-popup {
+            position: fixed;
+            bottom: -100px;
+            right: 20px;
+            z-index: 999;
+            width: 2cm;
+            height: 2cm;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            transition: bottom 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+            pointer-events: none;
+        }
+
+        #lottie-popup.active {
+            bottom: 20px;
+            pointer-events: auto;
+            cursor: pointer;
+        }
+
+        @keyframes fadeSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(16px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse-ring {
+            0% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+            }
+
+            70% {
+                box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+            }
+        }
+
+        .pulse-critical {
+            animation: pulse-ring 2s ease-in-out infinite;
+        }
+
+        /* ── Print Media Optimization ── */
+        @media print {
+            .nav-outer, .tab-nav, #lottie-popup, header, button, .no-print, a[href*="dashboard"] {
+                display: none !important;
+            }
+            body {
+                background: #ffffff !important;
+                color: #000000 !important;
+            }
+            .tab-panel {
+                display: block !important;
+                page-break-after: auto;
+            }
+            .card {
+                box-shadow: none !important;
+                border: 1px solid #cbd5e1 !important;
+                break-inside: avoid;
+                margin-bottom: 1.5rem !important;
+            }
+            main {
+                padding: 0 !important;
+                max-width: 100% !important;
+            }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col relative">
+
+    <div class="fixed inset-0 z-[-1] bg-dots opacity-60"></div>
+
+    <!-- ══ Header Nav ══ -->
+    <div class="nav-outer">
+        <header class="w-full max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
+            <a href="/" class="flex items-center gap-3" style="text-decoration:none;">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center">
+                    <dotlottie-wc src="https://lottie.host/fa36fe97-9c23-41ed-96e5-d0e84bfd0565/OUv90FeqWK.json"
+                        style="width: 40px; height: 40px;" autoplay loop></dotlottie-wc>
+                </div>
+                <span class="text-xl font-extrabold tracking-tight font-sans text-gray-900">
+                    BusinessPulse <span
+                        style="background:linear-gradient(90deg,#29A8E3,#E91E9A);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">AI</span>
+                </span>
+            </a>
+            <nav class="flex items-center gap-4">
+                <a href="{{ url_for('dashboard') }}"
+                    class="text-sm font-semibold text-gray-600 hover:text-gray-900 flex items-center gap-1.5">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Dashboard
+                </a>
+            </nav>
+        </header>
+    </div>
+
+    <!-- ══ Main Content ══ -->
+    <main class="flex-grow p-6 md:p-10 max-w-7xl mx-auto w-full space-y-8">
+
+        <!-- Header Banner -->
+        <div class="card p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+                <div
+                    class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50 text-bp-blue border border-sky-200 text-xs font-bold mb-2">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5 text-sky-500"></i> AI & ML Analytics Dashboard
+                </div>
+                <h1 class="text-3xl font-extrabold text-gray-900">Interactive Data Visualizations</h1>
+                <p class="text-sm text-gray-500 mt-1">
+                    {% if selected_record %}
+                    Viewing saved record from <strong>{{ selected_record.created_at.strftime('%b %d, %Y - %I:%M %p') }}</strong> ({{ selected_record.prev_filename }} & {{ selected_record.curr_filename }})
+                    <span class="inline-flex items-center gap-1 ml-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-sky-100 text-sky-800 border border-sky-200">
+                        <i data-lucide="hash" class="w-3 h-3"></i> Analysis #{{ selected_record.id }}
+                    </span>
+                    {% else %}
+                    Comparing baseline month metrics against current performance and machine learning forecasts.
+                    {% endif %}
+                </p>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+                {% if selected_record %}
+                <a href="{{ url_for('export_analysis_pdf', history_id=selected_record.id) }}"
+                    class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold text-white shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5"
+                    style="background: linear-gradient(135deg, #0284c7 0%, #7c3aed 100%);"
+                    title="Export complete executive PDF report for this analysis">
+                    <i data-lucide="file-down" class="w-4 h-4"></i> Export PDF Report
+                </a>
+                {% else %}
+                <a href="{{ url_for('export_analysis_pdf') }}"
+                    class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold text-white shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5"
+                    style="background: linear-gradient(135deg, #0284c7 0%, #7c3aed 100%);"
+                    title="Export executive PDF report">
+                    <i data-lucide="file-down" class="w-4 h-4"></i> Export PDF Report
+                </a>
+                {% endif %}
+                <button type="button" onclick="window.print()"
+                    class="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-full text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 shadow-sm transition-all"
+                    title="Print or Save interactive dashboard to PDF">
+                    <i data-lucide="printer" class="w-4 h-4 text-gray-500"></i> Print Dashboard
+                </button>
+                <a href="{{ url_for('dashboard') }}" class="nav-btn-primary">
+                    <i data-lucide="upload-cloud" class="w-4 h-4"></i> Upload New Dataset
+                </a>
+            </div>
+        </div>
+
+        <!-- ══ Section Tab Navigation ══ -->
+        <div class="tab-nav">
+            <button class="tab-btn active" onclick="switchTab('overview', this)">
+                <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Overview
+            </button>
+            <button class="tab-btn" onclick="switchTab('insights', this)">
+                <i data-lucide="brain" class="w-4 h-4"></i> AI Insights
+            </button>
+            <button class="tab-btn" onclick="switchTab('forecasting', this)">
+                <i data-lucide="trending-up" class="w-4 h-4"></i> Forecasting
+            </button>
+            <button class="tab-btn" onclick="switchTab('inventory', this)">
+                <i data-lucide="package" class="w-4 h-4"></i> Inventory
+            </button>
+            <button class="tab-btn" onclick="switchTab('simulator', this)">
+                <i data-lucide="flask-conical" class="w-4 h-4"></i> What-If Simulator
+            </button>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- TAB 1: OVERVIEW (Existing Charts + Summary Cards)       -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <div id="tab-overview" class="tab-panel active">
+
+            <!-- Key Summary Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+                <!-- Total Revenue -->
+                <div class="card p-5 relative overflow-hidden">
+                    <div class="card-top-bar"></div>
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-gray-500 uppercase">Total Revenue</span>
+                        <span
+                            class="status-pill {{ 'bg-emerald-50 text-emerald-600 border border-emerald-200' if analytics.summary.revenue_growth >= 0 else 'bg-rose-50 text-rose-600 border border-rose-200' }}">{{
+                            '+' if analytics.summary.revenue_growth >= 0 else '' }}{{ analytics.summary.revenue_growth
+                            }}%</span>
+                    </div>
+                    <div class="text-2xl font-extrabold text-gray-900">₹{{ analytics.summary.curr_revenue | inr_format
+                        }}</div>
+                    <div class="text-xs text-gray-400 mt-1">Vs. ₹{{ analytics.summary.prev_revenue | inr_format }} (Prev
+                        Month)</div>
+                </div>
+
+                <!-- Units Sold -->
+                <div class="card p-5 relative overflow-hidden">
+                    <div class="card-top-bar" style="background: linear-gradient(90deg, #9b59b6, #E91E9A);"></div>
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-gray-500 uppercase">Units Sold</span>
+                        <span
+                            class="status-pill {{ 'bg-emerald-50 text-emerald-600 border border-emerald-200' if analytics.summary.units_growth >= 0 else 'bg-rose-50 text-rose-600 border border-rose-200' }}">{{
+                            '+' if analytics.summary.units_growth >= 0 else '' }}{{ analytics.summary.units_growth
+                            }}%</span>
+                    </div>
+                    <div class="text-2xl font-extrabold text-gray-900">{{ "{:,}".format(analytics.summary.curr_units) }}
+                    </div>
+                    <div class="text-xs text-gray-400 mt-1">Vs. {{ "{:,}".format(analytics.summary.prev_units) }} (Prev
+                        Month)</div>
+                </div>
+
+                <!-- New Customers -->
+                <div class="card p-5 relative overflow-hidden">
+                    <div class="card-top-bar" style="background: linear-gradient(90deg, #10B981, #29A8E3);"></div>
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-gray-500 uppercase">New Customers</span>
+                        <span
+                            class="status-pill {{ 'bg-emerald-50 text-emerald-600 border border-emerald-200' if analytics.summary.customers_growth >= 0 else 'bg-rose-50 text-rose-600 border border-rose-200' }}">{{
+                            '+' if analytics.summary.customers_growth >= 0 else '' }}{{
+                            analytics.summary.customers_growth }}%</span>
+                    </div>
+                    <div class="text-2xl font-extrabold text-gray-900">{{
+                        "{:,}".format(analytics.summary.curr_customers) }}</div>
+                    <div class="text-xs text-gray-400 mt-1">Vs. {{ "{:,}".format(analytics.summary.prev_customers) }}
+                        (Prev Month)</div>
+                </div>
+
+                <!-- ML Forecast Revenue -->
+                <div class="card p-5 relative overflow-hidden bg-gradient-to-br from-indigo-50/50 to-purple-50/50">
+                    <div class="card-top-bar" style="background: linear-gradient(90deg, #8B5CF6, #EC4899);"></div>
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-purple-700 uppercase">ML Forecast Next Month</span>
+                        <span
+                            class="status-pill bg-purple-100 text-purple-700 border border-purple-200 font-bold">Predictive</span>
+                    </div>
+                    <div class="text-2xl font-extrabold text-purple-900">₹{{ analytics.summary.forecasted_revenue |
+                        inr_format }}</div>
+                    <div class="text-xs text-purple-500 mt-1">Holt-Winters Exponential Smoothing</div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <!-- Category Comparison Bar Chart -->
+                <div class="card p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-900">Revenue Comparison by Category</h3>
+                            <p class="text-xs text-gray-400">Previous Month vs Current Month (₹)</p>
+                        </div>
+                        <div class="p-2 rounded-xl bg-sky-50 text-sky-600">
+                            <i data-lucide="bar-chart-2" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+                    <div class="relative h-72">
+                        <canvas id="categoryComparisonChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Doughnut Chart: Distribution -->
+                <div class="card p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-900">Current Month Share</h3>
+                            <p class="text-xs text-gray-400">Product Category Revenue Breakdown (₹)</p>
+                        </div>
+                        <div class="p-2 rounded-xl bg-pink-50 text-pink-600">
+                            <i data-lucide="pie-chart" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+                    <div class="relative h-72 flex items-center justify-center">
+                        <canvas id="categoryDistributionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product Performance Data Table -->
+            <div class="card p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-900">Live Market Opportunity & Forecast</h3>
+                        <p class="text-xs text-gray-400">Projected Next Month Revenue based on Current Live Market
+                            Prices</p>
+                    </div>
+                    <div class="p-2 rounded-xl bg-purple-50 text-purple-600">
+                        <i data-lucide="zap" class="w-5 h-5"></i>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr
+                                class="border-b border-gray-100 text-[10px] text-gray-400 uppercase tracking-wider font-bold">
+                                <th class="py-3 px-4">Product Category</th>
+                                <th class="py-3 px-4">Historical Avg Price</th>
+                                <th class="py-3 px-4 text-purple-700 bg-purple-50 rounded-tl-lg">Current Live Price</th>
+                                <th class="py-3 px-4">Avg Monthly Units</th>
+                                <th class="py-3 px-4 text-emerald-700 bg-emerald-50 rounded-tr-lg">Projected Next Month
+                                    Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if analytics.category_stats %}
+                            {% for cat, stats in analytics.category_stats.items() %}
+                            <tr class="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                                <td class="py-3 px-4 font-semibold text-gray-800">{{ cat }}</td>
+                                <td class="py-3 px-4 text-gray-500">₹{{ stats.avg_price | inr_format }}</td>
+                                <td class="py-3 px-4 font-bold text-purple-700 bg-purple-50/30">
+                                    <div class="flex items-center gap-1.5">
+                                        ₹{{ stats.live_price | inr_format }}
+                                        {% if stats.live_price > stats.avg_price %}
+                                        <i data-lucide="trending-up" class="w-3.5 h-3.5 text-emerald-500"></i>
+                                        {% elif stats.live_price < stats.avg_price %} <i data-lucide="trending-down"
+                                            class="w-3.5 h-3.5 text-rose-500"></i>
+                                            {% else %}
+                                            <i data-lucide="minus" class="w-3.5 h-3.5 text-gray-400"></i>
+                                            {% endif %}
+                                    </div>
+                                </td>
+                                <td class="py-3 px-4 text-gray-600">{{ "{:,}".format(stats.units) }}</td>
+                                <td class="py-3 px-4 font-bold text-emerald-700 bg-emerald-50/30">
+                                    ₹{{ stats.projected_revenue | inr_format }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="py-4 text-center text-gray-400 text-sm">Detailed category metrics
+                                    not available in historical record.</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- TAB 2: AI INSIGHTS (Task 7 Frontend)                    -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <div id="tab-insights" class="tab-panel">
+            {% if analytics.insights %}
+            {% set ins = analytics.insights %}
+
+            <!-- Engine Badge -->
+            <div class="flex items-center gap-3 mb-6">
+                <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold
+                    {% if ins.engine == 'gemini_ai_engine' %}
+                        bg-gradient-to-r from-sky-50 to-purple-50 text-purple-700 border border-purple-200
+                    {% else %}
+                        bg-sky-50 text-sky-700 border border-sky-200
+                    {% endif %}">
+                    <i data-lucide="{% if ins.engine == 'gemini_ai_engine' %}sparkles{% else %}cpu{% endif %}"
+                        class="w-3.5 h-3.5"></i>
+                    {% if ins.engine == 'gemini_ai_engine' %}Powered by Gemini AI{% else %}Statistical Heuristic
+                    Engine{% endif %}
+                </div>
+                <button onclick="regenerateInsights()"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-white border border-gray-200 text-gray-600 hover:bg-sky-50 hover:border-sky-300 hover:text-sky-700 transition-all"
+                    id="regenerate-btn">
+                    <i data-lucide="refresh-cw" class="w-3 h-3"></i> Regenerate
+                </button>
+            </div>
+
+            <!-- Executive Summary -->
+            <div class="card p-6 md:p-8 mb-6 bg-gradient-to-br from-sky-50/30 to-white border-sky-200/60">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-10 h-10 rounded-xl bg-sky-100 flex items-center justify-center text-sky-600">
+                        <i data-lucide="file-text" class="w-5 h-5"></i>
+                    </div>
+                    <h2 class="text-xl font-extrabold text-gray-900">Executive Summary</h2>
+                </div>
+                <p class="text-sm text-gray-700 leading-relaxed">{{ ins.executive_summary }}</p>
+            </div>
+
+            <!-- Revenue Trends -->
+            {% if ins.revenue_trends %}
+            <div class="card p-6 mb-6">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600">
+                        <i data-lucide="line-chart" class="w-5 h-5"></i>
+                    </div>
+                    <h2 class="text-lg font-bold text-gray-900">Revenue Trends</h2>
+                </div>
+                <p class="text-sm text-gray-600 mb-4">{{ ins.revenue_trends.summary }}</p>
+                <div class="space-y-2 mb-4">
+                    {% for driver in ins.revenue_trends.key_drivers %}
+                    <div class="flex items-start gap-2.5 text-sm text-gray-700">
+                        <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0"></i>
+                        <span>{{ driver }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-200 text-sm text-emerald-800">
+                    <strong>Profit Health:</strong> {{ ins.revenue_trends.profit_health }}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Growth Opportunities -->
+            {% if ins.growth_opportunities %}
+            <div class="mb-6">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600">
+                        <i data-lucide="rocket" class="w-5 h-5"></i>
+                    </div>
+                    <h2 class="text-lg font-bold text-gray-900">Growth Opportunities</h2>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {% for opp in ins.growth_opportunities %}
+                    <div class="insight-card green pl-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-gray-400 uppercase">{{ opp.category }}</span>
+                            <span class="badge badge-{{ opp.impact|lower }}">{{ opp.impact }} Impact</span>
+                        </div>
+                        <h3 class="text-sm font-bold text-gray-900 mb-1.5">{{ opp.title }}</h3>
+                        <p class="text-xs text-gray-500 mb-3 leading-relaxed">{{ opp.description }}</p>
+                        <div class="flex items-center justify-between pt-2 border-t border-gray-100">
+                            <span class="text-xs font-bold text-emerald-600">{{ opp.potential_revenue_gain }}</span>
+                            <span class="text-[10px] text-gray-400">Potential Gain</span>
+                        </div>
+                        <div class="mt-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-100">
+                            <p class="text-[11px] text-emerald-700"><strong>Action:</strong> {{ opp.action_item }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Low Performing Products -->
+            {% if ins.low_performing_products %}
+            <div class="mb-6">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center text-rose-600">
+                        <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                    </div>
+                    <h2 class="text-lg font-bold text-gray-900">Low Performing Products</h2>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for lp in ins.low_performing_products %}
+                    <div class="insight-card rose pl-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-sm font-bold text-gray-900">{{ lp.category }}</h3>
+                            <span class="badge badge-{{ lp.severity|lower }}">{{ lp.severity }}</span>
+                        </div>
+                        <div class="space-y-1.5 text-xs text-gray-600">
+                            <p><strong class="text-gray-700">Issue:</strong> {{ lp.issue }}</p>
+                            <p><strong class="text-gray-700">Margin Impact:</strong> {{ lp.margin_impact }}</p>
+                        </div>
+                        <div class="mt-3 px-3 py-2 rounded-lg bg-rose-50 border border-rose-100">
+                            <p class="text-[11px] text-rose-700"><strong>Fix:</strong> {{ lp.remediation }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Customer Insights -->
+            {% if ins.customer_insights %}
+            <div class="card p-6 mb-6">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center text-purple-600">
+                        <i data-lucide="users" class="w-5 h-5"></i>
+                    </div>
+                    <h2 class="text-lg font-bold text-gray-900">Customer Insights</h2>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="p-4 rounded-xl bg-purple-50/50 border border-purple-100">
+                        <div class="text-[10px] font-bold text-purple-400 uppercase mb-1">Acquisition Health</div>
+                        <p class="text-sm text-gray-700">{{ ins.customer_insights.acquisition_health }}</p>
+                    </div>
+                    <div class="p-4 rounded-xl bg-sky-50/50 border border-sky-100">
+                        <div class="text-[10px] font-bold text-sky-400 uppercase mb-1">CAC Analysis</div>
+                        <p class="text-sm text-gray-700">{{ ins.customer_insights.cac_analysis }}</p>
+                    </div>
+                    <div class="p-4 rounded-xl bg-emerald-50/50 border border-emerald-100">
+                        <div class="text-[10px] font-bold text-emerald-400 uppercase mb-1">Revenue Per Customer</div>
+                        <p class="text-sm text-gray-700">{{ ins.customer_insights.revenue_per_customer }}</p>
+                    </div>
+                    <div class="p-4 rounded-xl bg-amber-50/50 border border-amber-100">
+                        <div class="text-[10px] font-bold text-amber-400 uppercase mb-1">Actionable Takeaway</div>
+                        <p class="text-sm text-gray-700">{{ ins.customer_insights.actionable_takeaway }}</p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Risk Analysis -->
+            {% if ins.risk_analysis %}
+            <div class="mb-6">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center text-red-600">
+                        <i data-lucide="shield-alert" class="w-5 h-5"></i>
+                    </div>
+                    <h2 class="text-lg font-bold text-gray-900">Risk Analysis</h2>
+                </div>
+                <div class="space-y-4">
+                    {% for risk in ins.risk_analysis %}
+                    <div
+                        class="insight-card {{ 'rose' if risk.severity == 'Critical' else ('amber' if risk.severity == 'Warning' else 'blue') }} pl-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-sm font-bold text-gray-900">{{ risk.risk_type }}</h3>
+                            <span class="badge badge-{{ risk.severity|lower }}">{{ risk.severity }}</span>
+                        </div>
+                        <p class="text-xs text-gray-600 mb-2">{{ risk.impact }}</p>
+                        <div class="px-3 py-2 rounded-lg bg-gray-50 border border-gray-100">
+                            <p class="text-[11px] text-gray-600"><strong class="text-gray-800">Mitigation:</strong> {{
+                                risk.mitigation }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Smart Recommendations -->
+            {% if ins.smart_recommendations %}
+            <div class="mb-6">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-600">
+                        <i data-lucide="lightbulb" class="w-5 h-5"></i>
+                    </div>
+                    <h2 class="text-lg font-bold text-gray-900">Smart Recommendations</h2>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {% for rec in ins.smart_recommendations %}
+                    <div class="insight-card purple pl-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="badge badge-{{ rec.priority|lower|replace(' ', '-') }}">{{ rec.priority
+                                }}</span>
+                            <span class="text-[10px] font-bold text-gray-400 uppercase">{{ rec.target_area }}</span>
+                        </div>
+                        <p class="text-sm font-semibold text-gray-800 mb-2">{{ rec.action }}</p>
+                        <div class="px-3 py-2 rounded-lg bg-indigo-50 border border-indigo-100">
+                            <p class="text-[11px] text-indigo-700"><strong>Expected:</strong> {{ rec.expected_outcome }}
+                            </p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% else %}
+            <div class="card p-12 text-center">
+                <div
+                    class="w-16 h-16 mx-auto rounded-2xl bg-gray-100 flex items-center justify-center text-gray-400 mb-4">
+                    <i data-lucide="brain" class="w-8 h-8"></i>
+                </div>
+                <h3 class="text-lg font-bold text-gray-700 mb-2">No AI Insights Available</h3>
+                <p class="text-sm text-gray-400">Upload datasets on the dashboard to generate AI-powered business
+                    insights.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- TAB 3: FORECASTING (Task 8 Frontend)                    -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <div id="tab-forecasting" class="tab-panel">
+            {% if analytics.forecasting %}
+            {% set fc = analytics.forecasting %}
+
+            <!-- Sales/Revenue Forecast -->
+            {% if fc.sales_forecast %}
+            {% set sf = fc.sales_forecast %}
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-6">
+                <div class="card p-5 bg-gradient-to-br from-sky-50/40 to-white">
+                    <div class="card-top-bar" style="background: linear-gradient(90deg, #29A8E3, #3b82f6);"></div>
+                    <div class="text-[10px] font-bold text-sky-500 uppercase mb-1">Expected Revenue</div>
+                    <div class="text-2xl font-extrabold text-gray-900">₹{{ sf.next_month_forecast | inr_format }}</div>
+                    <div class="text-xs text-gray-400 mt-1">Trend: <strong
+                            class="{{ 'text-emerald-600' if sf.trend_direction == 'Upward' else 'text-rose-600' }}">{{
+                            sf.trend_direction }} ({{ sf.growth_rate_pct }}%)</strong></div>
+                </div>
+                <div class="card p-5">
+                    <div class="card-top-bar" style="background: linear-gradient(90deg, #10b981, #34d399);"></div>
+                    <div class="text-[10px] font-bold text-emerald-500 uppercase mb-1">Optimistic Scenario</div>
+                    <div class="text-2xl font-extrabold text-emerald-700">₹{{ sf.optimistic_forecast | inr_format }}
+                    </div>
+                    <div class="text-xs text-gray-400 mt-1">{{ sf.confidence_interval_pct }}% Confidence</div>
+                </div>
+                <div class="card p-5">
+                    <div class="card-top-bar" style="background: linear-gradient(90deg, #f59e0b, #fbbf24);"></div>
+                    <div class="text-[10px] font-bold text-amber-500 uppercase mb-1">Conservative Scenario</div>
+                    <div class="text-2xl font-extrabold text-amber-700">₹{{ sf.conservative_forecast | inr_format }}
+                    </div>
+                    <div class="text-xs text-gray-400 mt-1">Risk-adjusted baseline</div>
+                </div>
+            </div>
+
+            <!-- Multi-period Revenue Chart -->
+            {% if sf.period_projections %}
+            <div class="card p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-900">Multi-Period Revenue Forecast</h3>
+                        <p class="text-xs text-gray-400">Expected, Optimistic & Conservative projections</p>
+                    </div>
+                    <div class="p-2 rounded-xl bg-indigo-50 text-indigo-600">
+                        <i data-lucide="trending-up" class="w-5 h-5"></i>
+                    </div>
+                </div>
+                <div class="relative h-72">
+                    <canvas id="forecastChart"></canvas>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Marketing Sensitivity Table -->
+            {% if sf.marketing_sensitivity %}
+            <div class="card p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-900">Marketing Spend Sensitivity</h3>
+                        <p class="text-xs text-gray-400">Revenue impact of marketing budget changes (marginal ROAS
+                            model)</p>
+                    </div>
+                    <div class="p-2 rounded-xl bg-amber-50 text-amber-600">
+                        <i data-lucide="target" class="w-5 h-5"></i>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr
+                                class="border-b border-gray-100 text-[10px] text-gray-400 uppercase tracking-wider font-bold">
+                                <th class="py-3 px-4">Budget Change</th>
+                                <th class="py-3 px-4">Marketing Budget</th>
+                                <th class="py-3 px-4">Projected Revenue</th>
+                                <th class="py-3 px-4">Estimated ROI</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sc in sf.marketing_sensitivity %}
+                            <tr
+                                class="border-b border-gray-50 hover:bg-gray-50/50 transition-colors {{ 'bg-sky-50/30' if sc.marketing_change_pct == 0 else '' }}">
+                                <td class="py-3 px-4">
+                                    <span
+                                        class="inline-flex items-center gap-1 font-bold text-sm {{ 'text-emerald-600' if sc.marketing_change_pct > 0 else ('text-rose-600' if sc.marketing_change_pct < 0 else 'text-gray-800') }}">
+                                        {% if sc.marketing_change_pct > 0 %}<i data-lucide="arrow-up-right"
+                                            class="w-3.5 h-3.5"></i>{% elif sc.marketing_change_pct < 0 %}<i
+                                            data-lucide="arrow-down-right" class="w-3.5 h-3.5"></i>{% else %}<i
+                                                data-lucide="minus" class="w-3.5 h-3.5"></i>{% endif %}
+                                            {{ sc.marketing_change_pct }}%{{ ' (Current)' if sc.marketing_change_pct ==
+                                            0 else '' }}
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4 text-gray-600">₹{{ sc.marketing_budget | inr_format }}</td>
+                                <td class="py-3 px-4 font-bold text-gray-900">₹{{ sc.projected_revenue | inr_format }}
+                                </td>
+                                <td
+                                    class="py-3 px-4 font-semibold {{ 'text-emerald-600' if sc.estimated_roi_pct > 0 else 'text-rose-600' }}">
+                                    {{ sc.estimated_roi_pct }}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+            {% endif %}
+
+            <!-- Demand Forecast -->
+            {% if fc.demand_forecast %}
+            {% set df = fc.demand_forecast %}
+            <div class="card p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center text-purple-600">
+                            <i data-lucide="shopping-cart" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-900">Category Demand Forecast</h3>
+                            <p class="text-xs text-gray-400">{{ df.analyzed_period_days }}-day analysis • {{
+                                df.total_historical_units | int }} → {{ df.total_projected_units | int }} units
+                                projected (+{{ df.aggregate_demand_growth_pct }}%)</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr
+                                class="border-b border-gray-100 text-[10px] text-gray-400 uppercase tracking-wider font-bold">
+                                <th class="py-3 px-3">Category</th>
+                                <th class="py-3 px-3">Historical Units</th>
+                                <th class="py-3 px-3 text-purple-700 bg-purple-50">Projected Units</th>
+                                <th class="py-3 px-3">Daily Velocity</th>
+                                <th class="py-3 px-3">Growth</th>
+                                <th class="py-3 px-3">Trend</th>
+                                <th class="py-3 px-3">Demand Share</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cat in df.category_demand %}
+                            <tr class="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                                <td class="py-3 px-3 font-semibold text-gray-800">{{ cat.category }}</td>
+                                <td class="py-3 px-3 text-gray-500">{{ "{:,}".format(cat.historical_units) }}</td>
+                                <td class="py-3 px-3 font-bold text-purple-700 bg-purple-50/30">{{
+                                    "{:,}".format(cat.projected_units) }}</td>
+                                <td class="py-3 px-3 text-gray-600">{{ cat.daily_velocity }}/day</td>
+                                <td class="py-3 px-3">
+                                    <span
+                                        class="font-bold {{ 'text-emerald-600' if cat.growth_pct >= 0 else 'text-rose-600' }}">{{
+                                        '+' if cat.growth_pct >= 0 else '' }}{{ cat.growth_pct }}%</span>
+                                </td>
+                                <td class="py-3 px-3">
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold
+                                        {% if cat.trend_status == 'High Surge' %}bg-emerald-50 text-emerald-700 border border-emerald-200
+                                        {% elif cat.trend_status == 'Moderate Growth' %}bg-sky-50 text-sky-700 border border-sky-200
+                                        {% elif cat.trend_status == 'Stable' %}bg-gray-50 text-gray-600 border border-gray-200
+                                        {% else %}bg-rose-50 text-rose-700 border border-rose-200{% endif %}">
+                                        {{ cat.trend_status }}
+                                    </span>
+                                </td>
+                                <td class="py-3 px-3 text-gray-600">{{ cat.projected_share_pct }}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+            {% else %}
+            <div class="card p-12 text-center">
+                <div
+                    class="w-16 h-16 mx-auto rounded-2xl bg-gray-100 flex items-center justify-center text-gray-400 mb-4">
+                    <i data-lucide="trending-up" class="w-8 h-8"></i>
+                </div>
+                <h3 class="text-lg font-bold text-gray-700 mb-2">No Forecasting Data Available</h3>
+                <p class="text-sm text-gray-400">Upload datasets on the dashboard to generate predictive forecasts.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- TAB 4: INVENTORY FORECAST                               -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <div id="tab-inventory" class="tab-panel">
+            {% if analytics.forecasting and analytics.forecasting.inventory_forecast %}
+            {% set inv = analytics.forecasting.inventory_forecast %}
+
+            <!-- Inventory Health Summary -->
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-5 mb-6">
+                <div class="card p-5">
+                    <div class="card-top-bar" style="background: linear-gradient(90deg, #10b981, #34d399);"></div>
+                    <div class="text-[10px] font-bold text-emerald-500 uppercase mb-1">Health Score</div>
+                    <div
+                        class="text-3xl font-extrabold {{ 'text-emerald-700' if inv.inventory_health_score >= 70 else ('text-amber-600' if inv.inventory_health_score >= 40 else 'text-rose-600') }}">
+                        {{ inv.inventory_health_score }}/100</div>
+                    <div class="text-xs text-gray-400 mt-1">{{ inv.service_level_confidence }} Service Level</div>
+                </div>
+                <div class="card p-5">
+                    <div class="card-top-bar" style="background: linear-gradient(90deg, #ef4444, #f87171);"></div>
+                    <div class="text-[10px] font-bold text-rose-500 uppercase mb-1">Critical Alerts</div>
+                    <div
+                        class="text-3xl font-extrabold {{ 'text-rose-600' if inv.critical_stockout_alerts > 0 else 'text-emerald-600' }}">
+                        {{ inv.critical_stockout_alerts }}</div>
+                    <div class="text-xs text-gray-400 mt-1">Immediate restocking needed</div>
+                </div>
+                <div class="card p-5">
+                    <div class="card-top-bar" style="background: linear-gradient(90deg, #8b5cf6, #a78bfa);"></div>
+                    <div class="text-[10px] font-bold text-purple-500 uppercase mb-1">SKU Categories</div>
+                    <div class="text-3xl font-extrabold text-gray-900">{{ inv.total_sku_categories }}</div>
+                    <div class="text-xs text-gray-400 mt-1">Tracked product lines</div>
+                </div>
+                <div class="card p-5">
+                    <div class="card-top-bar" style="background: linear-gradient(90deg, #f59e0b, #fbbf24);"></div>
+                    <div class="text-[10px] font-bold text-amber-500 uppercase mb-1">Restock Capital</div>
+                    <div class="text-2xl font-extrabold text-gray-900">₹{{ inv.total_restock_capital_required |
+                        inr_format }}</div>
+                    <div class="text-xs text-gray-400 mt-1">Estimated procurement cost</div>
+                </div>
+            </div>
+
+            <!-- Inventory Items Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {% for item in inv.get('items', []) %}
+                <div class="card p-5 relative overflow-hidden {{ 'pulse-critical' if item.risk_status == 'Critical' else '' }}
+                    risk-{{ item.risk_status|lower }}">
+                    <!-- Risk Badge -->
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-bold text-gray-900">{{ item.category }}</h3>
+                        <span class="badge
+                            {% if item.risk_status == 'Critical' %}badge-critical
+                            {% elif item.risk_status == 'Warning' %}badge-warning
+                            {% elif item.risk_status == 'Overstocked' %}badge-short-term
+                            {% else %}badge-moderate{% endif %}">
+                            {{ item.risk_badge }}
+                        </span>
+                    </div>
+
+                    <!-- Stock Metrics -->
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <div class="p-2.5 rounded-lg bg-gray-50">
+                            <div class="text-[9px] font-bold text-gray-400 uppercase">Current Stock</div>
+                            <div class="text-lg font-extrabold text-gray-900">{{ "{:,}".format(item.current_stock) }}
+                            </div>
+                        </div>
+                        <div class="p-2.5 rounded-lg bg-gray-50">
+                            <div class="text-[9px] font-bold text-gray-400 uppercase">Days Left</div>
+                            <div
+                                class="text-lg font-extrabold {{ 'text-rose-600' if item.days_of_stock_remaining <= item.lead_time_days else ('text-amber-600' if item.days_of_stock_remaining <= item.lead_time_days + 7 else 'text-emerald-600') }}">
+                                {{ item.days_of_stock_remaining }}</div>
+                        </div>
+                        <div class="p-2.5 rounded-lg bg-gray-50">
+                            <div class="text-[9px] font-bold text-gray-400 uppercase">Safety Stock</div>
+                            <div class="text-sm font-bold text-gray-700">{{ "{:,}".format(item.safety_stock) }}</div>
+                        </div>
+                        <div class="p-2.5 rounded-lg bg-gray-50">
+                            <div class="text-[9px] font-bold text-gray-400 uppercase">Reorder Point</div>
+                            <div class="text-sm font-bold text-gray-700">{{ "{:,}".format(item.reorder_point) }}</div>
+                        </div>
+                    </div>
+
+                    <!-- Daily Run Rate & Stockout Date -->
+                    <div class="text-xs text-gray-500 space-y-1.5">
+                        <div class="flex justify-between">
+                            <span>Daily Run Rate</span>
+                            <span class="font-bold text-gray-700">{{ item.daily_run_rate }}/day</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Est. Stockout</span>
+                            <span
+                                class="font-bold {{ 'text-rose-600' if item.risk_status == 'Critical' else 'text-gray-700' }}">{{
+                                item.estimated_stockout_date }}</span>
+                        </div>
+                        {% if item.recommended_reorder_units > 0 %}
+                        <div class="flex justify-between pt-2 border-t border-gray-100">
+                            <span class="font-bold text-purple-700">Reorder Qty</span>
+                            <span class="font-bold text-purple-700">{{ "{:,}".format(item.recommended_reorder_units) }}
+                                units</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Est. Capital</span>
+                            <span class="font-bold text-amber-600">₹{{ item.estimated_restock_capital_inr | inr_format
+                                }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% else %}
+            <div class="card p-12 text-center">
+                <div
+                    class="w-16 h-16 mx-auto rounded-2xl bg-gray-100 flex items-center justify-center text-gray-400 mb-4">
+                    <i data-lucide="package" class="w-8 h-8"></i>
+                </div>
+                <h3 class="text-lg font-bold text-gray-700 mb-2">No Inventory Forecast Available</h3>
+                <p class="text-sm text-gray-400">Upload datasets on the dashboard to generate inventory projections.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- TAB 5: WHAT-IF SIMULATOR                                -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <div id="tab-simulator" class="tab-panel">
+            <div class="card p-6 md:p-8 mb-6">
+                <div class="flex items-center gap-3 mb-5">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-100 to-purple-100 flex items-center justify-center text-purple-600">
+                        <i data-lucide="flask-conical" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-extrabold text-gray-900">What-If Scenario Simulator</h2>
+                        <p class="text-xs text-gray-400">Adjust parameters to see how changes impact revenue, demand,
+                            and inventory</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-6">
+                    <div>
+                        <label class="text-xs font-bold text-gray-600 mb-1.5 block">Marketing Budget (₹)</label>
+                        <input type="number" id="sim-marketing" class="sim-input" placeholder="e.g. 50000" step="1000">
+                        <p class="text-[10px] text-gray-400 mt-1">Leave empty for current budget</p>
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-gray-600 mb-1.5 block">Supplier Lead Time (days)</label>
+                        <input type="number" id="sim-leadtime" class="sim-input" placeholder="e.g. 10" value="10"
+                            min="1" max="60">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-gray-600 mb-1.5 block">Growth Adjustment (%)</label>
+                        <input type="number" id="sim-growth" class="sim-input" placeholder="e.g. 5" value="0" step="1"
+                            min="-50" max="100">
+                        <p class="text-[10px] text-gray-400 mt-1">+/- to boost or reduce demand</p>
+                    </div>
+                </div>
+
+                <button onclick="runSimulation()" id="sim-run-btn" class="nav-btn-primary px-8 py-3">
+                    <i data-lucide="play" class="w-4 h-4"></i> Run Simulation
+                </button>
+            </div>
+
+            <!-- Simulation Results (populated by JS) -->
+            <div id="sim-results" class="hidden space-y-6">
+                <div class="card p-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div
+                            class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600">
+                            <i data-lucide="calculator" class="w-5 h-5"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-900">Simulation Results</h3>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-5" id="sim-summary-cards"></div>
+                    <div id="sim-demand-table"></div>
+                    <div id="sim-inventory-alerts" class="mt-5"></div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="py-5 text-center text-gray-400 text-xs border-t border-gray-200">
+        <p>&copy; 2026 BusinessPulse AI Platform. All rights reserved.</p>
+    </footer>
+
+    <!-- Periodic Lottie Popup -->
+    <a href="{{ url_for('chat_page') }}" id="lottie-popup" title="Chat with AI">
+        <iframe src="https://lottie.host/embed/10ca4a60-9100-4412-8c43-102a760d9f3b/RaFPYUt6qD.json" width="100%"
+            height="100%" frameborder="0" style="pointer-events: none; border: none; background: transparent;"></iframe>
+    </a>
+
+    <script>
+        lucide.createIcons();
+
+        // ═══════════════════════════════════════════════════════
+        // TAB SWITCHING & HASH ROUTING
+        // ═══════════════════════════════════════════════════════
+        function switchTab(tabName, clickedBtn) {
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+
+            const panel = document.getElementById('tab-' + tabName);
+            if (panel) panel.classList.add('active');
+
+            if (clickedBtn) {
+                clickedBtn.classList.add('active');
+            } else {
+                const btn = document.querySelector(`button[onclick*="'${tabName}'"]`);
+                if (btn) btn.classList.add('active');
+            }
+
+            if (window.location.hash !== '#' + tabName) {
+                history.replaceState(null, null, '#' + tabName);
+            }
+
+            if (tabName === 'forecasting') {
+                setTimeout(initForecastChart, 50);
+            }
+
+            if (window.lucide) lucide.createIcons();
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const hash = window.location.hash.replace('#', '');
+            if (['overview', 'insights', 'forecasting', 'inventory', 'simulator'].includes(hash)) {
+                switchTab(hash);
+            }
+        });
+
+        window.addEventListener('hashchange', () => {
+            const hash = window.location.hash.replace('#', '');
+            if (['overview', 'insights', 'forecasting', 'inventory', 'simulator'].includes(hash)) {
+                switchTab(hash);
+            }
+        });
+
+        // ═══════════════════════════════════════════════════════
+        // OVERVIEW CHARTS
+        // ═══════════════════════════════════════════════════════
+        const cData = {{ analytics.charts | tojson }};
+
+        // Bar Chart
+        new Chart(document.getElementById('categoryComparisonChart').getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: cData.categories,
+                datasets: [
+                    {
+                        label: 'Previous Month (₹)',
+                        data: cData.prev_cat_data,
+                        backgroundColor: 'rgba(41, 168, 227, 0.65)',
+                        borderColor: '#29A8E3',
+                        borderWidth: 1.5,
+                        borderRadius: 6
+                    },
+                    {
+                        label: 'Current Month (₹)',
+                        data: cData.curr_cat_data,
+                        backgroundColor: 'rgba(233, 30, 154, 0.65)',
+                        borderColor: '#E91E9A',
+                        borderWidth: 1.5,
+                        borderRadius: 6
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'top' } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+
+        // Doughnut Chart
+        new Chart(document.getElementById('categoryDistributionChart').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: cData.categories,
+                datasets: [{
+                    data: cData.curr_cat_data,
+                    backgroundColor: ['#29A8E3', '#E91E9A', '#F5A623', '#10B981', '#8B5CF6', '#EC4899'],
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+
+        let forecastChartInstance = null;
+        function initForecastChart() {
+            {% if analytics.forecasting and analytics.forecasting.sales_forecast and analytics.forecasting.sales_forecast.period_projections %}
+            if (forecastChartInstance) {
+                forecastChartInstance.resize();
+                return;
+            }
+            const canvas = document.getElementById('forecastChart');
+            if (!canvas) return;
+
+            const projections = {{ analytics.forecasting.sales_forecast.period_projections | tojson
+        }};
+        if (!projections || projections.length === 0) return;
+
+        const fLabels = projections.map(p => p.label);
+        const fExpected = projections.map(p => p.expected_revenue);
+        const fOptimistic = projections.map(p => p.optimistic);
+        const fConservative = projections.map(p => p.conservative);
+
+        forecastChartInstance = new Chart(canvas.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: fLabels,
+                datasets: [
+                    {
+                        label: 'Expected (₹)',
+                        data: fExpected,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 3,
+                        fill: false,
+                        tension: 0.4,
+                        pointRadius: 6,
+                        pointBackgroundColor: '#3b82f6',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    },
+                    {
+                        label: 'Optimistic (₹)',
+                        data: fOptimistic,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                        borderWidth: 2,
+                        borderDash: [6, 4],
+                        fill: false,
+                        tension: 0.4,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#10b981'
+                    },
+                    {
+                        label: 'Conservative (₹)',
+                        data: fConservative,
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                        borderWidth: 2,
+                        borderDash: [6, 4],
+                        fill: '-1',
+                        tension: 0.4,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#f59e0b'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: function (ctx) {
+                                return ctx.dataset.label + ': ₹' + ctx.parsed.y.toLocaleString('en-IN');
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        ticks: {
+                            callback: function (value) { return '₹' + (value / 1000).toFixed(0) + 'K'; }
+                        }
+                    }
+                }
+            }
+        });
+        {% endif %}
+        }
+
+        // ═══════════════════════════════════════════════════════
+        // REGENERATE INSIGHTS (API call)
+        // ═══════════════════════════════════════════════════════
+        async function regenerateInsights() {
+            const btn = document.getElementById('regenerate-btn');
+            const origHTML = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i> Regenerating...';
+            btn.disabled = true;
+            lucide.createIcons();
+
+            try {
+                const res = await fetch('/api/insights/generate', { method: 'POST' });
+                const data = await res.json();
+                if (res.ok) {
+                    location.reload();
+                } else {
+                    alert(data.message || 'Failed to regenerate insights');
+                }
+            } catch (err) {
+                alert('Error: ' + err.message);
+            } finally {
+                btn.innerHTML = origHTML;
+                btn.disabled = false;
+                lucide.createIcons();
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════
+        // WHAT-IF SIMULATOR
+        // ═══════════════════════════════════════════════════════
+        async function runSimulation() {
+            const btn = document.getElementById('sim-run-btn');
+            const origHTML = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Running Simulation...';
+            btn.disabled = true;
+            lucide.createIcons();
+
+            const marketingBudget = document.getElementById('sim-marketing').value || null;
+            const leadTimeDays = document.getElementById('sim-leadtime').value || 10;
+            const growthAdj = document.getElementById('sim-growth').value || 0;
+
+            try {
+                const res = await fetch('/api/forecast/simulate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        marketing_budget: marketingBudget ? parseFloat(marketingBudget) : null,
+                        lead_time_days: parseInt(leadTimeDays),
+                        growth_adjustment_pct: parseFloat(growthAdj)
+                    })
+                });
+                const data = await res.json();
+
+                if (res.ok && data.simulation) {
+                    renderSimResults(data.simulation, data.simulation_parameters);
+                } else {
+                    alert(data.message || 'Simulation failed');
+                }
+            } catch (err) {
+                alert('Error: ' + err.message);
+            } finally {
+                btn.innerHTML = origHTML;
+                btn.disabled = false;
+                lucide.createIcons();
+            }
+        }
+
+        function formatINR(val) {
+            val = Math.round(val);
+            let s = val.toString();
+            if (s.length <= 3) return s;
+            let res = s.slice(-3);
+            s = s.slice(0, -3);
+            while (s.length > 2) {
+                res = s.slice(-2) + ',' + res;
+                s = s.slice(0, -2);
+            }
+            return s + ',' + res;
+        }
+
+        function renderSimResults(sim, params) {
+            const container = document.getElementById('sim-results');
+            container.classList.remove('hidden');
+
+            // Summary Cards
+            const sf = sim.sales_forecast || {};
+            const df = sim.demand_forecast || {};
+            const inv = sim.inventory_forecast || {};
+
+            document.getElementById('sim-summary-cards').innerHTML = `
+                <div class="p-5 rounded-2xl bg-gradient-to-br from-sky-50 to-white border border-sky-200">
+                    <div class="text-[10px] font-bold text-sky-500 uppercase mb-1">Simulated Revenue</div>
+                    <div class="text-2xl font-extrabold text-gray-900">₹${formatINR(sf.next_month_forecast || 0)}</div>
+                    <div class="text-xs text-gray-400 mt-1">Trend: ${sf.trend_direction || 'N/A'} (${sf.growth_rate_pct || 0}%)</div>
+                </div>
+                <div class="p-5 rounded-2xl bg-gradient-to-br from-purple-50 to-white border border-purple-200">
+                    <div class="text-[10px] font-bold text-purple-500 uppercase mb-1">Projected Demand</div>
+                    <div class="text-2xl font-extrabold text-gray-900">${(df.total_projected_units || 0).toLocaleString()} units</div>
+                    <div class="text-xs text-gray-400 mt-1">Growth: ${df.aggregate_demand_growth_pct || 0}%</div>
+                </div>
+                <div class="p-5 rounded-2xl bg-gradient-to-br from-amber-50 to-white border border-amber-200">
+                    <div class="text-[10px] font-bold text-amber-500 uppercase mb-1">Restock Capital</div>
+                    <div class="text-2xl font-extrabold text-gray-900">₹${formatINR(inv.total_restock_capital_required || 0)}</div>
+                    <div class="text-xs text-gray-400 mt-1">${inv.critical_stockout_alerts || 0} critical alerts</div>
+                </div>
+            `;
+
+            // Demand Table
+            const demandItems = df.category_demand || [];
+            let demandHTML = '';
+            if (demandItems.length > 0) {
+                demandHTML = `
+                    <h4 class="text-sm font-bold text-gray-700 mb-2">Simulated Demand by Category</h4>
+                    <div class="overflow-x-auto"><table class="w-full text-left border-collapse text-sm">
+                        <thead><tr class="border-b border-gray-100 text-[10px] text-gray-400 uppercase font-bold">
+                            <th class="py-2 px-3">Category</th>
+                            <th class="py-2 px-3">Projected Units</th>
+                            <th class="py-2 px-3">Growth</th>
+                            <th class="py-2 px-3">Trend</th>
+                        </tr></thead><tbody>`;
+                demandItems.forEach(d => {
+                    const growthColor = d.growth_pct >= 0 ? 'text-emerald-600' : 'text-rose-600';
+                    demandHTML += `<tr class="border-b border-gray-50">
+                        <td class="py-2 px-3 font-semibold text-gray-800">${d.category}</td>
+                        <td class="py-2 px-3 text-purple-700 font-bold">${d.projected_units.toLocaleString()}</td>
+                        <td class="py-2 px-3 ${growthColor} font-bold">${d.growth_pct >= 0 ? '+' : ''}${d.growth_pct}%</td>
+                        <td class="py-2 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-50 border border-gray-200 text-gray-600">${d.trend_status}</span></td>
+                    </tr>`;
+                });
+                demandHTML += '</tbody></table></div>';
+            }
+            document.getElementById('sim-demand-table').innerHTML = demandHTML;
+
+            // Inventory Alerts
+            const invItems = (inv.items || []).filter(i => i.risk_status === 'Critical' || i.risk_status === 'Warning');
+            let alertsHTML = '';
+            if (invItems.length > 0) {
+                alertsHTML = '<h4 class="text-sm font-bold text-gray-700 mb-2">Inventory Risk Alerts</h4><div class="grid grid-cols-1 sm:grid-cols-2 gap-3">';
+                invItems.forEach(i => {
+                    const badgeClass = i.risk_status === 'Critical' ? 'badge-critical' : 'badge-warning';
+                    alertsHTML += `
+                        <div class="p-4 rounded-xl ${i.risk_status === 'Critical' ? 'bg-rose-50 border border-rose-200' : 'bg-amber-50 border border-amber-200'}">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-sm font-bold text-gray-900">${i.category}</span>
+                                <span class="badge ${badgeClass}">${i.risk_badge}</span>
+                            </div>
+                            <div class="text-xs text-gray-600">
+                                <span>${i.days_of_stock_remaining} days left</span> · 
+                                <span>Reorder: ${i.recommended_reorder_units.toLocaleString()} units</span> · 
+                                <span>Cost: ₹${formatINR(i.estimated_restock_capital_inr)}</span>
+                            </div>
+                        </div>`;
+                });
+                alertsHTML += '</div>';
+            }
+            document.getElementById('sim-inventory-alerts').innerHTML = alertsHTML;
+
+            lucide.createIcons();
+            document.getElementById('sim-results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // ── Periodic Lottie Popup Logic ──
+        function triggerLottiePopup() {
+            const popup = document.getElementById('lottie-popup');
+            popup.classList.add('active');
+            setTimeout(() => { popup.classList.remove('active'); }, 10000);
+        }
+        setTimeout(triggerLottiePopup, 500);
+        setInterval(triggerLottiePopup, 60000);
+    </script>
+</body>
+
+</html>

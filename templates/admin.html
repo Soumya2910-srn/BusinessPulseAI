@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel — BusinessPulse AI</title>
+    <meta name="description" content="Admin dashboard for BusinessPulse AI — manage users, roles, platform analytics and system health.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.9.4/dist/dotlottie-wc.js" type="module"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+            background: linear-gradient(135deg, #e3f2fd 0%, #fff8e1 50%, #fce4ec 100%);
+            color: #1a1a2e;
+            min-height: 100vh;
+        }
+
+        /* ── Background ── */
+        .bg-dots { background-image: radial-gradient(circle, #29A8E318 1px, transparent 1px); background-size: 30px 30px; }
+
+        /* ── Navbar ── */
+        .nav-outer { position: sticky; top: 0; z-index: 50; padding: 14px 20px 0; pointer-events: none; }
+        header {
+            background: rgba(255,255,255,0.88);
+            backdrop-filter: blur(28px) saturate(180%);
+            -webkit-backdrop-filter: blur(28px) saturate(180%);
+            border: 1.5px solid rgba(255,255,255,0.75);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(41,168,227,0.13), 0 2px 8px rgba(0,0,0,0.06);
+            position: relative; pointer-events: all; overflow: visible;
+        }
+        header::before {
+            content: ''; position: absolute; inset: 0; border-radius: 20px; padding: 1.5px;
+            background: linear-gradient(90deg, #29A8E3 0%, #9b59b6 40%, #E91E9A 70%, #F5A623 100%);
+            background-size: 200% auto; animation: navBorderShimmer 4s linear infinite;
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none;
+        }
+        @keyframes navBorderShimmer { 0%{background-position:0% center;} 100%{background-position:200% center;} }
+        .nav-link { font-size: 0.95rem; font-weight: 600; color: #374151; padding: 0.45rem 1rem; border-radius: 8px; transition: color 0.25s, background 0.25s; text-decoration: none; }
+        .nav-link:hover { color: #1a1a2e; background: rgba(41,168,227,0.07); }
+        .nav-link.active { color: #E91E9A; background: rgba(233,30,154,0.07); }
+
+        /* ── Cards ── */
+        .card {
+            background: rgba(255,255,255,0.78);
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            border: 1px solid rgba(255,255,255,0.88);
+            border-radius: 1.5rem;
+            box-shadow: 0 4px 30px rgba(31,38,135,0.08);
+        }
+
+        /* ── Stat Cards ── */
+        .stat-card {
+            border-radius: 1.25rem;
+            padding: 1.4rem 1.5rem;
+            background: rgba(255,255,255,0.72);
+            border: 1px solid rgba(255,255,255,0.9);
+            box-shadow: 0 2px 16px rgba(31,38,135,0.07);
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 8px 32px rgba(31,38,135,0.12); }
+        .stat-card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 1.25rem 1.25rem 0 0;
+        }
+        .stat-card.blue::before { background: linear-gradient(90deg,#29A8E3,#60c8f7); }
+        .stat-card.pink::before { background: linear-gradient(90deg,#E91E9A,#f06292); }
+        .stat-card.amber::before { background: linear-gradient(90deg,#F5A623,#ffd54f); }
+        .stat-card.green::before { background: linear-gradient(90deg,#22c55e,#4ade80); }
+        .stat-card.purple::before { background: linear-gradient(90deg,#9b59b6,#c084fc); }
+
+        /* ── Table ── */
+        .data-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+        .data-table th { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #9ca3af; padding: 0.85rem 1rem; text-align: left; }
+        .data-table td { padding: 0.9rem 1rem; font-size: 0.875rem; border-top: 1px solid rgba(0,0,0,0.045); vertical-align: middle; }
+        .data-table tbody tr { transition: background 0.15s; }
+        .data-table tbody tr:hover td { background: rgba(41,168,227,0.035); }
+
+        /* ── Badges ── */
+        .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 50px; font-size: 0.68rem; font-weight: 700; }
+        .badge-admin { background: linear-gradient(135deg,#29A8E322,#E91E9A22); border: 1px solid #E91E9A55; color: #c2185b; }
+        .badge-user  { background: #f0f9ff; border: 1px solid #bae6fd; color: #0284c7; }
+        .badge-green { background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; }
+        .badge-amber { background: #fffbeb; border: 1px solid #fde68a; color: #b45309; }
+        .badge-red   { background: #fff1f2; border: 1px solid #fecdd3; color: #be123c; }
+
+        /* ── Avatar ── */
+        .avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.88rem; font-weight: 800; color: white; text-transform: uppercase; flex-shrink: 0; }
+
+        /* ── Buttons ── */
+        .btn { padding: 0.4rem 0.9rem; border-radius: 8px; font-size: 0.75rem; font-weight: 700; border: none; cursor: pointer; transition: all 0.18s; display: inline-flex; align-items: center; gap: 5px; }
+        .btn-to-admin { background: linear-gradient(135deg,#29A8E322,#E91E9A22); color: #c2185b; border: 1px solid #E91E9A44; }
+        .btn-to-admin:hover { background: linear-gradient(135deg,#29A8E344,#E91E9A44); }
+        .btn-to-user  { background: #f0f9ff; color: #0284c7; border: 1px solid #bae6fd; }
+        .btn-to-user:hover { background: #e0f2fe; }
+        .btn-del { background: #fff1f2; color: #e11d48; border: 1px solid #fecdd3; }
+        .btn-del:hover { background: #ffe4e6; }
+        .btn-export { background: rgba(255,255,255,0.9); color: #374151; border: 1px solid rgba(0,0,0,0.1); }
+        .btn-export:hover { background: white; border-color: #29A8E3; color: #29A8E3; }
+        .btn-primary { background: linear-gradient(135deg,#29A8E3,#E91E9A); color: white; }
+        .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+
+        /* ── Tab Nav ── */
+        .tab-btn { padding: 0.55rem 1.1rem; border-radius: 10px; font-size: 0.85rem; font-weight: 600; border: none; cursor: pointer; color: #6b7280; background: transparent; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
+        .tab-btn.active { background: white; color: #1a1a2e; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+        .tab-btn:hover:not(.active) { background: rgba(255,255,255,0.5); color: #374151; }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+
+        /* ── Animations ── */
+        @keyframes slideInUp { from{opacity:0;transform:translateY(18px);} to{opacity:1;transform:translateY(0);} }
+        @keyframes fadeIn    { from{opacity:0;} to{opacity:1;} }
+        .animate-slide { animation: slideInUp 0.45s ease both; }
+        .animate-fade  { animation: fadeIn 0.35s ease both; }
+
+        /* ── Toast ── */
+        #toast-container { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.6rem; }
+        .toast { background: white; border-radius: 12px; padding: 0.85rem 1.1rem; box-shadow: 0 4px 24px rgba(0,0,0,0.13); display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; font-weight: 600; animation: slideInUp 0.3s ease; min-width: 220px; }
+
+        /* ── Modal ── */
+        #confirm-modal { display: none; }
+        #confirm-modal.show { display: flex; }
+
+        /* ── User Dropdown ── */
+        .user-dropdown-menu { display: none; }
+        .user-dropdown-menu.open { display: block; }
+
+        /* ── Section separator ── */
+        .section-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #9ca3af; margin-bottom: 0.6rem; }
+
+        /* ── Progress bar ── */
+        .progress-bar { height: 6px; border-radius: 999px; background: #f1f5f9; overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 999px; transition: width 0.6s ease; }
+
+        /* ── System pill ── */
+        .sys-pill { background: rgba(255,255,255,0.65); border: 1px solid rgba(0,0,0,0.07); border-radius: 10px; padding: 0.65rem 1rem; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+
+        /* ── Search input ── */
+        .search-input { background: rgba(255,255,255,0.75); border: 1px solid rgba(0,0,0,0.1); border-radius: 10px; padding: 0.5rem 0.9rem 0.5rem 2.2rem; font-size: 0.84rem; outline: none; transition: border 0.2s; width: 220px; }
+        .search-input:focus { border-color: #29A8E3; background: white; }
+
+        /* ── Logo hover ── */
+        .logo-icon-wrap { transition: transform 0.3s ease; }
+        .logo-icon-wrap:hover { transform: rotate(-4deg) scale(1.1); }
+
+        /* ── Chart container ── */
+        .chart-wrap { position: relative; height: 220px; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col relative">
+
+    <!-- Background layers -->
+    <div class="fixed inset-0 z-[-1] bg-dots opacity-60"></div>
+    <div class="fixed top-0 right-0 w-96 h-96 rounded-full z-[-1]" style="background:radial-gradient(circle,#29A8E315 0%,transparent 70%);"></div>
+    <div class="fixed bottom-0 left-0 w-96 h-96 rounded-full z-[-1]" style="background:radial-gradient(circle,#E91E9A10 0%,transparent 70%);"></div>
+
+    <!-- ── Delete Confirm Modal ── -->
+    <div id="confirm-modal" class="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm items-center justify-center">
+        <div class="bg-white rounded-3xl p-8 max-w-sm w-full mx-4 shadow-2xl text-center animate-slide">
+            <div class="w-14 h-14 rounded-2xl bg-rose-100 flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="trash-2" class="w-7 h-7 text-rose-500"></i>
+            </div>
+            <h3 class="text-lg font-extrabold text-gray-900 mb-1">Delete User?</h3>
+            <p class="text-sm text-gray-500 mb-6" id="confirm-msg">This will permanently delete this user and all their data.</p>
+            <div class="flex gap-3">
+                <button onclick="closeConfirm()" class="flex-1 py-2.5 rounded-xl font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors">Cancel</button>
+                <button id="confirm-delete-btn" class="flex-1 py-2.5 rounded-xl font-bold text-white bg-rose-500 hover:bg-rose-600 transition-colors">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Navbar ── -->
+    <div class="nav-outer">
+        <header class="w-full max-w-7xl mx-auto">
+            <div class="flex items-center justify-between px-6 py-3">
+                <a href="/" class="flex items-center gap-3" style="text-decoration:none;">
+                    <div class="logo-icon-wrap">
+                        <dotlottie-wc src="https://lottie.host/fa36fe97-9c23-41ed-96e5-d0e84bfd0565/OUv90FeqWK.json"
+                            style="width:40px;height:40px;" autoplay loop></dotlottie-wc>
+                    </div>
+                    <span class="text-xl font-extrabold tracking-tight" style="color:#1a1a2e;">
+                        BusinessPulse <span style="background:linear-gradient(90deg,#29A8E3,#E91E9A);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">AI</span>
+                    </span>
+                </a>
+                <nav class="hidden md:flex items-center gap-1">
+                    <a href="{{ url_for('dashboard') }}" class="nav-link">Overview</a>
+                    <a href="{{ url_for('visualizations_page') }}" class="nav-link">Analytics</a>
+                    <a href="{{ url_for('chat_page') }}" class="nav-link">AI Chat</a>
+                    <a href="{{ url_for('admin_panel') }}" class="nav-link active">Admin Panel</a>
+                </nav>
+                <!-- User menu -->
+                <div class="relative">
+                    <button type="button" onclick="document.getElementById('nav-user-dd').classList.toggle('open')"
+                        class="flex items-center gap-2.5 pl-1.5 pr-4 py-1 rounded-full bg-white border border-sky-200 hover:border-sky-400 transition-all shadow-md">
+                        <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-pink-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm">
+                            {{ current_user.username[0].upper() }}
+                        </div>
+                        <span class="text-sm font-bold text-gray-800 hidden sm:block">{{ current_user.username }}</span>
+                        <svg class="w-3.5 h-3.5 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div id="nav-user-dd" class="user-dropdown-menu absolute right-0 mt-3 w-56 bg-white/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-sky-100 p-3 z-50">
+                        <div class="px-3 py-2 mb-1">
+                            <p class="text-xs text-gray-400 font-semibold">Signed in as</p>
+                            <p class="text-sm font-bold text-gray-800 truncate">{{ current_user.email }}</p>
+                            <span class="badge badge-admin mt-1"><i data-lucide="shield" style="width:9px;height:9px;"></i> Administrator</span>
+                        </div>
+                        <hr class="my-1.5 border-gray-100">
+                        <a href="{{ url_for('profile') }}" class="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-sky-50 text-sm font-semibold text-gray-700 transition-colors">
+                            <i data-lucide="user-circle" class="w-4 h-4"></i> My Profile
+                        </a>
+                        <a href="{{ url_for('dashboard') }}" class="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-sky-50 text-sm font-semibold text-gray-700 transition-colors">
+                            <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Dashboard
+                        </a>
+                        <hr class="my-1.5 border-gray-100">
+                        <a href="{{ url_for('logout') }}" class="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-rose-50 text-sm font-semibold text-rose-600 transition-colors">
+                            <i data-lucide="log-out" class="w-4 h-4"></i> Logout
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+    </div>
+
+    <!-- ── Main Content ── -->
+    <main class="flex-grow p-5 md:p-8 max-w-7xl mx-auto w-full animate-slide">
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="mb-5 flex flex-col gap-2">
+            {% for category, message in messages %}
+            <div class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold shadow-sm border-l-4
+                {{ 'bg-green-50 border-green-500 text-green-800' if category == 'success' else ('bg-blue-50 border-blue-400 text-blue-800' if category == 'info' else 'bg-rose-50 border-rose-500 text-rose-800') }}">
+                <i data-lucide="{{ 'check-circle' if category == 'success' else ('info' if category == 'info' else 'alert-circle') }}" class="w-4 h-4 flex-shrink-0"></i>
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <!-- Page Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-7">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl flex items-center justify-center shadow-md" style="background:linear-gradient(135deg,#E91E9A,#9b59b6);">
+                    <i data-lucide="shield-check" class="w-6 h-6 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl sm:text-3xl font-extrabold" style="color:#1a1a2e;">Admin Panel</h1>
+                    <p class="text-sm text-gray-500">Full platform control — users, analytics, and system health</p>
+                </div>
+            </div>
+            <!-- Export actions -->
+            <div class="flex items-center gap-2 flex-wrap">
+                <a href="{{ url_for('admin_export_users_csv') }}" class="btn btn-export">
+                    <i data-lucide="users" class="w-3.5 h-3.5"></i> Export Users
+                </a>
+                <a href="{{ url_for('admin_export_analyses_csv') }}" class="btn btn-export">
+                    <i data-lucide="bar-chart-2" class="w-3.5 h-3.5"></i> Export Analyses
+                </a>
+            </div>
+        </div>
+
+        <!-- ── KPI Stats Row ── -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-7">
+            <div class="stat-card blue">
+                <div class="flex items-start justify-between mb-3">
+                    <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:#29A8E318;">
+                        <i data-lucide="users" class="w-4.5 h-4.5" style="color:#29A8E3;width:18px;height:18px;"></i>
+                    </div>
+                </div>
+                <div class="text-2xl font-extrabold text-gray-900">{{ users|length }}</div>
+                <div class="text-xs text-gray-500 font-semibold mt-0.5">Total Users</div>
+            </div>
+            <div class="stat-card pink">
+                <div class="flex items-start justify-between mb-3">
+                    <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:#E91E9A18;">
+                        <i data-lucide="crown" style="color:#E91E9A;width:18px;height:18px;"></i>
+                    </div>
+                </div>
+                <div class="text-2xl font-extrabold text-gray-900">{{ users|selectattr('role','equalto','admin')|list|length }}</div>
+                <div class="text-xs text-gray-500 font-semibold mt-0.5">Admins</div>
+            </div>
+            <div class="stat-card amber">
+                <div class="flex items-start justify-between mb-3">
+                    <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:#F5A62318;">
+                        <i data-lucide="user" style="color:#F5A623;width:18px;height:18px;"></i>
+                    </div>
+                </div>
+                <div class="text-2xl font-extrabold text-gray-900">{{ users|selectattr('role','equalto','user')|list|length }}</div>
+                <div class="text-xs text-gray-500 font-semibold mt-0.5">Standard Users</div>
+            </div>
+            <div class="stat-card green">
+                <div class="flex items-start justify-between mb-3">
+                    <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:#22c55e18;">
+                        <i data-lucide="activity" style="color:#22c55e;width:18px;height:18px;"></i>
+                    </div>
+                </div>
+                <div class="text-2xl font-extrabold text-gray-900">{{ total_analyses }}</div>
+                <div class="text-xs text-gray-500 font-semibold mt-0.5">Total Analyses</div>
+            </div>
+            <div class="stat-card purple md:col-span-1 col-span-2">
+                <div class="flex items-start justify-between mb-3">
+                    <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:#9b59b618;">
+                        <i data-lucide="indian-rupee" style="color:#9b59b6;width:18px;height:18px;"></i>
+                    </div>
+                </div>
+                <div class="text-xl font-extrabold text-gray-900">₹{{ total_revenue_sum|inr_format }}</div>
+                <div class="text-xs text-gray-500 font-semibold mt-0.5">Platform Revenue</div>
+            </div>
+        </div>
+
+        <!-- ── Tab Navigation ── -->
+        <div class="flex items-center gap-1 p-1.5 bg-white/50 backdrop-blur rounded-2xl shadow-sm border border-white/80 mb-6 w-fit">
+            <button class="tab-btn active" onclick="switchTab('users', this)">
+                <i data-lucide="users" style="width:15px;height:15px;"></i> Users
+            </button>
+            <button class="tab-btn" onclick="switchTab('analytics', this)">
+                <i data-lucide="bar-chart-3" style="width:15px;height:15px;"></i> Analytics
+            </button>
+            <button class="tab-btn" onclick="switchTab('activity', this)">
+                <i data-lucide="clock" style="width:15px;height:15px;"></i> Activity Log
+            </button>
+            <button class="tab-btn" onclick="switchTab('system', this)">
+                <i data-lucide="server" style="width:15px;height:15px;"></i> System
+            </button>
+        </div>
+
+        <!-- ══════════════════════════════════════════════
+             TAB 1 — Users
+        ══════════════════════════════════════════════ -->
+        <div id="tab-users" class="tab-pane active">
+            <div class="card overflow-hidden">
+                <!-- Table toolbar -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4 border-b" style="border-color:rgba(0,0,0,0.06);">
+                    <h2 class="font-bold text-gray-900 flex items-center gap-2">
+                        <i data-lucide="users" class="w-4 h-4 text-sky-500"></i>
+                        All Users
+                        <span class="badge badge-user ml-1">{{ users|length }}</span>
+                    </h2>
+                    <div class="flex items-center gap-2">
+                        <!-- Search box -->
+                        <div class="relative">
+                            <i data-lucide="search" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" style="width:14px;height:14px;"></i>
+                            <input id="user-search" type="text" placeholder="Search users…" oninput="filterUsers(this.value)"
+                                class="search-input" autocomplete="off">
+                        </div>
+                        <!-- Role filter -->
+                        <select id="role-filter" onchange="filterUsers(document.getElementById('user-search').value)"
+                            class="search-input" style="width:auto;padding-left:0.75rem;">
+                            <option value="">All roles</option>
+                            <option value="admin">Admin</option>
+                            <option value="user">User</option>
+                        </select>
+                    </div>
+                </div>
+
+                {% if users %}
+                <div class="overflow-x-auto">
+                    <table class="data-table" id="users-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>User</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Analyses</th>
+                                <th>Joined</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in users %}
+                            <tr id="user-row-{{ u.id }}" data-username="{{ u.username|lower }}" data-email="{{ u.email|lower }}" data-role="{{ u.role }}">
+                                <td class="text-gray-400 font-mono text-xs">{{ loop.index }}</td>
+                                <td>
+                                    <div class="flex items-center gap-2.5">
+                                        <div class="avatar" style="background:linear-gradient(135deg,{{ ['#5b8dee,#7c3aed','#E91E9A,#f06292','#F5A623,#ffd54f','#22c55e,#4ade80','#29A8E3,#60c8f7'][loop.index0 % 5] }});">
+                                            {{ u.username[0] }}
+                                        </div>
+                                        <div>
+                                            <div class="font-semibold text-gray-900 text-sm">{{ u.username }}</div>
+                                            {% if u.id == current_user.id %}
+                                            <div class="text-[10px] text-sky-500 font-bold flex items-center gap-0.5">
+                                                <i data-lucide="dot" style="width:10px;height:10px;"></i> You
+                                            </div>
+                                            {% elif is_admin_email(u.email) %}
+                                            <div class="text-[10px] text-pink-500 font-bold">Master Admin</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-gray-500 text-sm max-w-[200px] truncate">{{ u.email }}</td>
+                                <td>
+                                    <span id="role-badge-{{ u.id }}" class="badge {{ 'badge-admin' if u.role == 'admin' else 'badge-user' }}">
+                                        {% if u.role == 'admin' %}
+                                        <i data-lucide="crown" style="width:9px;height:9px;"></i> Admin
+                                        {% else %}
+                                        <i data-lucide="user" style="width:9px;height:9px;"></i> User
+                                        {% endif %}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-semibold text-gray-800">{{ user_stats.get(u.id, 0) }}</span>
+                                        {% if user_stats.get(u.id, 0) > 0 %}
+                                        <div class="flex-1 w-16 progress-bar hidden sm:block">
+                                            <div class="progress-fill" style="width:{{ [100, (user_stats.get(u.id, 0) / [1, total_analyses]|max * 100)|int]|min }}%;background:linear-gradient(90deg,#29A8E3,#E91E9A);"></div>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td class="text-gray-400 text-xs whitespace-nowrap">
+                                    {{ u.created_at.strftime('%b %d, %Y') if u.created_at else 'N/A' }}
+                                </td>
+                                <td>
+                                    {% if u.id != current_user.id %}
+                                    <div class="flex items-center gap-2">
+                                        {% if not is_admin_email(u.email) %}
+                                        <button
+                                            id="toggle-btn-{{ u.id }}"
+                                            onclick="toggleRole({{ u.id }}, '{{ u.role }}')"
+                                            class="btn {{ 'btn-to-user' if u.role == 'admin' else 'btn-to-admin' }}">
+                                            {% if u.role == 'admin' %}
+                                            <i data-lucide="user" style="width:11px;height:11px;"></i> To User
+                                            {% else %}
+                                            <i data-lucide="crown" style="width:11px;height:11px;"></i> To Admin
+                                            {% endif %}
+                                        </button>
+                                        {% else %}
+                                        <span class="text-xs text-gray-400 italic">Protected</span>
+                                        {% endif %}
+                                        {% if not is_admin_email(u.email) %}
+                                        <button onclick="confirmDelete({{ u.id }}, '{{ u.username }}')" class="btn btn-del" title="Delete user">
+                                            <i data-lucide="trash-2" style="width:12px;height:12px;"></i>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                    {% else %}
+                                    <span class="text-xs text-gray-400">—</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <div id="no-results" class="hidden py-10 text-center text-gray-400 text-sm font-semibold">
+                        No users match your search.
+                    </div>
+                </div>
+                {% else %}
+                <div class="flex flex-col items-center justify-center py-20 text-gray-400">
+                    <i data-lucide="users" class="w-12 h-12 mb-3 opacity-30"></i>
+                    <p class="font-semibold">No users registered yet</p>
+                </div>
+                {% endif %}
+
+                <!-- Footer row -->
+                <div class="flex items-center justify-between px-6 py-3 border-t text-xs text-gray-400 font-semibold" style="border-color:rgba(0,0,0,0.05);">
+                    <span>Showing <span id="visible-count">{{ users|length }}</span> of {{ users|length }} users</span>
+                    <span>Last refreshed: {{ now().strftime('%b %d, %Y %H:%M') if now is defined else 'Now' }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════
+             TAB 2 — Analytics
+        ══════════════════════════════════════════════ -->
+        <div id="tab-analytics" class="tab-pane">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
+
+                <!-- Revenue summary card -->
+                <div class="card p-6 lg:col-span-1 flex flex-col gap-4">
+                    <h3 class="font-bold text-gray-900 flex items-center gap-2 text-sm">
+                        <i data-lucide="indian-rupee" class="w-4 h-4 text-purple-500"></i>
+                        Platform Revenue Summary
+                    </h3>
+                    <div>
+                        <p class="section-label">Total Recorded Revenue</p>
+                        <p class="text-3xl font-extrabold" style="background:linear-gradient(135deg,#9b59b6,#E91E9A);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+                            ₹{{ total_revenue_sum|inr_format }}
+                        </p>
+                    </div>
+                    <div>
+                        <p class="section-label">Total Forecasted Revenue</p>
+                        <p class="text-2xl font-extrabold text-gray-700">₹{{ total_forecast_sum|inr_format }}</p>
+                    </div>
+                    <div class="mt-auto pt-3 border-t" style="border-color:rgba(0,0,0,0.05);">
+                        <div class="flex justify-between text-xs text-gray-500 mb-1">
+                            <span>Forecast vs Actual</span>
+                            {% if total_revenue_sum > 0 %}
+                            <span>{{ ((total_forecast_sum / total_revenue_sum) * 100)|int }}%</span>
+                            {% else %}
+                            <span>—</span>
+                            {% endif %}
+                        </div>
+                        <div class="progress-bar">
+                            {% if total_revenue_sum > 0 %}
+                            <div class="progress-fill" style="width:{{ [100, ((total_forecast_sum / total_revenue_sum) * 100)|int]|min }}%;background:linear-gradient(90deg,#9b59b6,#E91E9A);"></div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Role distribution donut -->
+                <div class="card p-6 flex flex-col gap-3">
+                    <h3 class="font-bold text-gray-900 flex items-center gap-2 text-sm">
+                        <i data-lucide="pie-chart" class="w-4 h-4 text-pink-500"></i>
+                        User Role Distribution
+                    </h3>
+                    <div class="chart-wrap">
+                        <canvas id="roleChart"></canvas>
+                    </div>
+                    <div class="flex items-center justify-center gap-5 text-xs font-semibold text-gray-500">
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full" style="background:#E91E9A;"></span>Admins</span>
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full" style="background:#29A8E3;"></span>Users</span>
+                    </div>
+                </div>
+
+                <!-- Analysis per user bar -->
+                <div class="card p-6 flex flex-col gap-3">
+                    <h3 class="font-bold text-gray-900 flex items-center gap-2 text-sm">
+                        <i data-lucide="bar-chart-2" class="w-4 h-4 text-sky-500"></i>
+                        Analyses per User (Top 8)
+                    </h3>
+                    <div class="chart-wrap">
+                        <canvas id="analysisChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User analytics table -->
+            <div class="card overflow-hidden">
+                <div class="px-6 py-4 border-b" style="border-color:rgba(0,0,0,0.06);">
+                    <h3 class="font-bold text-gray-900 flex items-center gap-2 text-sm">
+                        <i data-lucide="table" class="w-4 h-4 text-amber-500"></i>
+                        Per-User Analytics Breakdown
+                    </h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Role</th>
+                                <th>Analyses Run</th>
+                                <th>Analysis Share</th>
+                                <th>Joined</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in users %}
+                            <tr>
+                                <td>
+                                    <div class="flex items-center gap-2">
+                                        <div class="avatar" style="width:28px;height:28px;font-size:0.75rem;background:linear-gradient(135deg,#5b8dee,#7c3aed);">{{ u.username[0] }}</div>
+                                        <span class="font-semibold text-gray-800 text-sm">{{ u.username }}</span>
+                                        {% if u.id == current_user.id %}<span class="badge badge-green ml-1" style="font-size:0.6rem;">You</span>{% endif %}
+                                    </div>
+                                </td>
+                                <td><span class="badge {{ 'badge-admin' if u.role == 'admin' else 'badge-user' }}">{{ u.role|capitalize }}</span></td>
+                                <td class="font-bold text-gray-900">{{ user_stats.get(u.id, 0) }}</td>
+                                <td style="min-width:140px;">
+                                    <div class="flex items-center gap-2">
+                                        <div class="progress-bar flex-1">
+                                            {% set share = ((user_stats.get(u.id, 0) / [1, total_analyses]|max) * 100)|int %}
+                                            <div class="progress-fill" style="width:{{ share }}%;background:linear-gradient(90deg,#29A8E3,#E91E9A);"></div>
+                                        </div>
+                                        <span class="text-xs text-gray-400 font-semibold w-9 text-right">
+                                            {{ ((user_stats.get(u.id, 0) / [1, total_analyses]|max) * 100)|int }}%
+                                        </span>
+                                    </div>
+                                </td>
+                                <td class="text-gray-400 text-xs">{{ u.created_at.strftime('%b %d, %Y') if u.created_at else '—' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════
+             TAB 3 — Activity Log
+        ══════════════════════════════════════════════ -->
+        <div id="tab-activity" class="tab-pane">
+            <div class="card overflow-hidden">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4 border-b" style="border-color:rgba(0,0,0,0.06);">
+                    <h2 class="font-bold text-gray-900 flex items-center gap-2 text-sm">
+                        <i data-lucide="clock" class="w-4 h-4 text-amber-500"></i>
+                        Recent Analysis Activity
+                        <span class="badge badge-amber">Last 50</span>
+                    </h2>
+                    <a href="{{ url_for('admin_export_analyses_csv') }}" class="btn btn-export">
+                        <i data-lucide="download" style="width:13px;height:13px;"></i> Download CSV
+                    </a>
+                </div>
+
+                {% if analyses_display %}
+                <div class="overflow-x-auto">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>User</th>
+                                <th>Datasets</th>
+                                <th>Revenue (Curr)</th>
+                                <th>Revenue Growth</th>
+                                <th>Forecasted</th>
+                                <th>Date</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in analyses_display %}
+                            {% set a = item.record %}
+                            {% set u = item.user %}
+                            <tr>
+                                <td class="text-gray-400 font-mono text-xs">#{{ a.id }}</td>
+                                <td>
+                                    {% if u %}
+                                    <div class="flex items-center gap-2">
+                                        <div class="avatar" style="width:28px;height:28px;font-size:0.72rem;background:linear-gradient(135deg,#E91E9A,#9b59b6);">{{ u.username[0] }}</div>
+                                        <div>
+                                            <div class="font-semibold text-gray-800 text-xs">{{ u.username }}</div>
+                                            <div class="text-gray-400 text-[10px]">{{ u.email }}</div>
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <span class="text-gray-400 text-xs italic">Deleted user</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-xs text-gray-500">
+                                    <div class="flex flex-col gap-0.5">
+                                        <span class="truncate max-w-[140px]" title="{{ a.prev_filename }}">
+                                            <span class="text-gray-400">Prev:</span> {{ a.prev_filename or '—' }}
+                                        </span>
+                                        <span class="truncate max-w-[140px]" title="{{ a.curr_filename }}">
+                                            <span class="text-gray-400">Curr:</span> {{ a.curr_filename or '—' }}
+                                        </span>
+                                    </div>
+                                </td>
+                                <td class="font-semibold text-gray-800 text-sm">₹{{ a.curr_revenue|inr_format }}</td>
+                                <td>
+                                    {% if a.revenue_growth is not none %}
+                                    <span class="badge {{ 'badge-green' if a.revenue_growth >= 0 else 'badge-red' }}">
+                                        {{ '+' if a.revenue_growth >= 0 else '' }}{{ a.revenue_growth|round(1) }}%
+                                    </span>
+                                    {% else %}
+                                    <span class="text-gray-400 text-xs">—</span>
+                                    {% endif %}
+                                </td>
+                                <td class="font-semibold text-gray-700 text-sm">₹{{ a.forecasted_revenue|inr_format }}</td>
+                                <td class="text-gray-400 text-xs whitespace-nowrap">
+                                    {{ a.created_at.strftime('%b %d, %Y %H:%M') if a.created_at else '—' }}
+                                </td>
+                                <td>
+                                    <div class="flex items-center gap-1.5">
+                                        <a href="{{ url_for('export_analysis_pdf', history_id=a.id) }}" class="btn btn-export" style="font-size:0.68rem;padding:0.3rem 0.7rem; color:#7c3aed; border-color:#ddd6fe;" title="Download PDF Report">
+                                            <i data-lucide="file-down" style="width:11px;height:11px;"></i> PDF
+                                        </a>
+                                        <a href="{{ url_for('visualizations_page') }}?history_id={{ a.id }}" class="btn btn-export" style="font-size:0.68rem;padding:0.3rem 0.7rem;" title="View analysis">
+                                            <i data-lucide="external-link" style="width:11px;height:11px;"></i> View
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="flex flex-col items-center justify-center py-20 text-gray-400">
+                    <i data-lucide="inbox" class="w-12 h-12 mb-3 opacity-30"></i>
+                    <p class="font-semibold">No analysis activity yet</p>
+                    <p class="text-sm mt-1">Analyses will appear here as users upload datasets.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════
+             TAB 4 — System Info
+        ══════════════════════════════════════════════ -->
+        <div id="tab-system" class="tab-pane">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+                <!-- Platform config -->
+                <div class="card p-6 flex flex-col gap-4">
+                    <h3 class="font-bold text-gray-900 flex items-center gap-2">
+                        <i data-lucide="settings" class="w-4 h-4 text-sky-500"></i>
+                        Platform Configuration
+                    </h3>
+                    <div class="flex flex-col gap-2">
+                        <div class="sys-pill">
+                            <span class="text-xs font-semibold text-gray-500 flex items-center gap-1.5">
+                                <i data-lucide="database" style="width:13px;height:13px;color:#9b59b6;"></i> Database Engine
+                            </span>
+                            <span class="badge {{ 'badge-green' if 'MySQL' in system_info.db_engine else 'badge-amber' }}">{{ system_info.db_engine }}</span>
+                        </div>
+                        <div class="sys-pill">
+                            <span class="text-xs font-semibold text-gray-500 flex items-center gap-1.5">
+                                <i data-lucide="mail" style="width:13px;height:13px;color:#E91E9A;"></i> Mail Server
+                            </span>
+                            <span class="text-xs font-bold text-gray-700">{{ system_info.mail_server }}:{{ system_info.mail_port }}</span>
+                        </div>
+                        <div class="sys-pill">
+                            <span class="text-xs font-semibold text-gray-500 flex items-center gap-1.5">
+                                <i data-lucide="user-check" style="width:13px;height:13px;color:#29A8E3;"></i> Mail Account
+                            </span>
+                            <span class="text-xs font-bold text-gray-700 truncate max-w-[180px]">{{ system_info.mail_user }}</span>
+                        </div>
+                        <div class="sys-pill">
+                            <span class="text-xs font-semibold text-gray-500 flex items-center gap-1.5">
+                                <i data-lucide="shield" style="width:13px;height:13px;color:#F5A623;"></i> Master Admin
+                            </span>
+                            <span class="text-xs font-bold text-gray-700 truncate max-w-[180px]">{{ system_info.master_admin }}</span>
+                        </div>
+                        <div class="sys-pill">
+                            <span class="text-xs font-semibold text-gray-500 flex items-center gap-1.5">
+                                <i data-lucide="cpu" style="width:13px;height:13px;color:#22c55e;"></i> Gemini AI
+                            </span>
+                            <span class="badge {{ 'badge-green' if system_info.gemini_configured else 'badge-red' }}">
+                                {{ 'Configured ✓' if system_info.gemini_configured else 'Not configured' }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Platform health -->
+                <div class="card p-6 flex flex-col gap-4">
+                    <h3 class="font-bold text-gray-900 flex items-center gap-2">
+                        <i data-lucide="activity" class="w-4 h-4 text-green-500"></i>
+                        Platform Health
+                    </h3>
+                    <div class="flex flex-col gap-3">
+                        <div>
+                            <div class="flex justify-between text-xs font-semibold text-gray-600 mb-1.5">
+                                <span>User Adoption</span>
+                                <span>{{ users|length }} registered</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width:{{ [100, users|length * 10]|min }}%;background:linear-gradient(90deg,#29A8E3,#60c8f7);"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs font-semibold text-gray-600 mb-1.5">
+                                <span>Analysis Activity</span>
+                                <span>{{ total_analyses }} total</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width:{{ [100, total_analyses * 5]|min }}%;background:linear-gradient(90deg,#E91E9A,#f06292);"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs font-semibold text-gray-600 mb-1.5">
+                                <span>Admin Coverage</span>
+                                {% set admin_count = users|selectattr('role','equalto','admin')|list|length %}
+                                <span>{{ admin_count }} / {{ users|length }}</span>
+                            </div>
+                            <div class="progress-bar">
+                                {% set admin_pct = ((admin_count / [1, users|length]|max) * 100)|int %}
+                                <div class="progress-fill" style="width:{{ admin_pct }}%;background:linear-gradient(90deg,#9b59b6,#c084fc);"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs font-semibold text-gray-600 mb-1.5">
+                                <span>AI Configuration</span>
+                                <span>{{ '100%' if system_info.gemini_configured else '50%' }}</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width:{{ '100' if system_info.gemini_configured else '50' }}%;background:linear-gradient(90deg,#22c55e,#4ade80);"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Status pills -->
+                    <div class="mt-2 pt-4 border-t grid grid-cols-2 gap-2" style="border-color:rgba(0,0,0,0.05);">
+                        <div class="sys-pill flex-col items-start gap-0.5" style="align-items:flex-start;">
+                            <span class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Auth Mode</span>
+                            <span class="text-xs font-bold text-gray-700">OTP (Passwordless)</span>
+                        </div>
+                        <div class="sys-pill flex-col items-start gap-0.5" style="align-items:flex-start;">
+                            <span class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Framework</span>
+                            <span class="text-xs font-bold text-gray-700">Flask + SQLAlchemy</span>
+                        </div>
+                        <div class="sys-pill flex-col items-start gap-0.5" style="align-items:flex-start;">
+                            <span class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">AI Engine</span>
+                            <span class="text-xs font-bold text-gray-700">Gemini 2.5 Flash</span>
+                        </div>
+                        <div class="sys-pill flex-col items-start gap-0.5" style="align-items:flex-start;">
+                            <span class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">RAG</span>
+                            <span class="text-xs font-bold text-gray-700">FAISS + LangChain</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick admin actions -->
+                <div class="card p-6 md:col-span-2 flex flex-col gap-4">
+                    <h3 class="font-bold text-gray-900 flex items-center gap-2">
+                        <i data-lucide="zap" class="w-4 h-4 text-amber-500"></i>
+                        Quick Actions
+                    </h3>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <a href="{{ url_for('admin_export_users_csv') }}"
+                            class="flex flex-col items-center gap-2 p-4 rounded-2xl border border-dashed border-sky-300 bg-sky-50/60 hover:bg-sky-50 transition-colors text-center cursor-pointer">
+                            <i data-lucide="download" class="w-6 h-6 text-sky-500"></i>
+                            <span class="text-xs font-bold text-sky-700">Export Users CSV</span>
+                        </a>
+                        <a href="{{ url_for('admin_export_analyses_csv') }}"
+                            class="flex flex-col items-center gap-2 p-4 rounded-2xl border border-dashed border-pink-300 bg-pink-50/60 hover:bg-pink-50 transition-colors text-center cursor-pointer">
+                            <i data-lucide="file-text" class="w-6 h-6 text-pink-500"></i>
+                            <span class="text-xs font-bold text-pink-700">Export Analyses CSV</span>
+                        </a>
+                        <a href="{{ url_for('dashboard') }}"
+                            class="flex flex-col items-center gap-2 p-4 rounded-2xl border border-dashed border-amber-300 bg-amber-50/60 hover:bg-amber-50 transition-colors text-center cursor-pointer">
+                            <i data-lucide="layout-dashboard" class="w-6 h-6 text-amber-500"></i>
+                            <span class="text-xs font-bold text-amber-700">Go to Dashboard</span>
+                        </a>
+                        <a href="{{ url_for('visualizations_page') }}"
+                            class="flex flex-col items-center gap-2 p-4 rounded-2xl border border-dashed border-purple-300 bg-purple-50/60 hover:bg-purple-50 transition-colors text-center cursor-pointer">
+                            <i data-lucide="bar-chart-3" class="w-6 h-6 text-purple-500"></i>
+                            <span class="text-xs font-bold text-purple-700">View Analytics</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="py-5 text-center text-gray-400 text-xs border-t mt-auto" style="border-color:#e8edf5;">
+        &copy; 2026 BusinessPulse AI · Admin Panel · All rights reserved.
+    </footer>
+
+    <!-- Toast container -->
+    <div id="toast-container"></div>
+
+    <script>
+    lucide.createIcons();
+
+    // ── Nav dropdown ──
+    document.addEventListener('click', function(e) {
+        const dd = document.getElementById('nav-user-dd');
+        if (dd && !dd.contains(e.target) && !e.target.closest('button[onclick*="nav-user-dd"]')) {
+            dd.classList.remove('open');
+        }
+    });
+
+    // ── Tab switching ──
+    function switchTab(name, btn) {
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('tab-' + name).classList.add('active');
+        btn.classList.add('active');
+        lucide.createIcons();
+    }
+
+    // ── Toast ──
+    function showToast(msg, success = true) {
+        const container = document.getElementById('toast-container');
+        const el = document.createElement('div');
+        el.className = 'toast';
+        el.style.borderLeft = `4px solid ${success ? '#22c55e' : '#ef4444'}`;
+        el.innerHTML = `<span style="font-size:1.1rem;">${success ? '✓' : '✗'}</span> <span>${msg}</span>`;
+        container.appendChild(el);
+        setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 0.4s'; setTimeout(() => el.remove(), 400); }, 3500);
+    }
+
+    // ── Toggle Role ──
+    async function toggleRole(userId, currentRole) {
+        const btn = document.getElementById(`toggle-btn-${userId}`);
+        const origHTML = btn.innerHTML;
+        btn.innerHTML = '<span style="opacity:0.6;">…</span>';
+        btn.disabled = true;
+        try {
+            const res = await fetch(`/admin/toggle_role/${userId}`, { method: 'POST' });
+            const data = await res.json();
+            if (data.status === 'success') {
+                const newRole = data.new_role;
+                const badge = document.getElementById(`role-badge-${userId}`);
+                badge.className = `badge ${newRole === 'admin' ? 'badge-admin' : 'badge-user'}`;
+                badge.innerHTML = newRole === 'admin'
+                    ? `<svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 4 3 12h14l3-12-6 5-4-7-4 7-6-5z"/></svg> Admin`
+                    : `<svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> User`;
+                btn.className = `btn ${newRole === 'admin' ? 'btn-to-user' : 'btn-to-admin'}`;
+                btn.innerHTML = newRole === 'admin'
+                    ? `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> To User`
+                    : `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m2 4 3 12h14l3-12-6 5-4-7-4 7-6-5z"/></svg> To Admin`;
+                btn.onclick = () => toggleRole(userId, newRole);
+                // Also update data-role for filter
+                const row = document.getElementById(`user-row-${userId}`);
+                if (row) row.setAttribute('data-role', newRole);
+                showToast(data.message, true);
+            } else {
+                btn.innerHTML = origHTML;
+                showToast(data.message, false);
+            }
+        } catch (e) {
+            btn.innerHTML = origHTML;
+            showToast('Network error. Please try again.', false);
+        }
+        btn.disabled = false;
+    }
+
+    // ── Delete user ──
+    let pendingDeleteId = null;
+    function confirmDelete(userId, username) {
+        pendingDeleteId = userId;
+        document.getElementById('confirm-msg').textContent =
+            `Delete "${username}"? This permanently removes their account and all analysis history.`;
+        document.getElementById('confirm-modal').classList.add('show');
+        document.getElementById('confirm-delete-btn').onclick = () => deleteUser(userId, username);
+    }
+    function closeConfirm() {
+        document.getElementById('confirm-modal').classList.remove('show');
+        pendingDeleteId = null;
+    }
+    async function deleteUser(userId, username) {
+        closeConfirm();
+        try {
+            const res = await fetch(`/admin/delete_user/${userId}`, { method: 'POST' });
+            const data = await res.json();
+            if (data.status === 'success') {
+                const row = document.getElementById(`user-row-${userId}`);
+                if (row) {
+                    row.style.transition = 'opacity 0.4s, transform 0.4s';
+                    row.style.opacity = '0';
+                    row.style.transform = 'translateX(20px)';
+                    setTimeout(() => row.remove(), 400);
+                }
+                showToast(`"${username}" deleted successfully.`, true);
+                updateVisibleCount();
+            } else {
+                showToast(data.message, false);
+            }
+        } catch (e) {
+            showToast('Network error. Please try again.', false);
+        }
+    }
+
+    // ── User search & filter ──
+    function filterUsers(query) {
+        const q = query.toLowerCase();
+        const roleFilter = document.getElementById('role-filter').value;
+        const rows = document.querySelectorAll('#users-table tbody tr');
+        let visible = 0;
+        rows.forEach(row => {
+            const username = row.getAttribute('data-username') || '';
+            const email = row.getAttribute('data-email') || '';
+            const role = row.getAttribute('data-role') || '';
+            const matchesSearch = !q || username.includes(q) || email.includes(q);
+            const matchesRole = !roleFilter || role === roleFilter;
+            if (matchesSearch && matchesRole) {
+                row.style.display = '';
+                visible++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        document.getElementById('visible-count').textContent = visible;
+        const noRes = document.getElementById('no-results');
+        if (noRes) noRes.classList.toggle('hidden', visible > 0);
+    }
+    function updateVisibleCount() {
+        const rows = document.querySelectorAll('#users-table tbody tr');
+        let count = 0;
+        rows.forEach(r => { if (r.style.display !== 'none') count++; });
+        document.getElementById('visible-count').textContent = count;
+    }
+
+    // ── Charts ──
+    document.addEventListener('DOMContentLoaded', function () {
+        // Role distribution donut
+        const adminCount = {{ users|selectattr('role','equalto','admin')|list|length }};
+        const userCount  = {{ users|selectattr('role','equalto','user')|list|length }};
+        const roleCtx = document.getElementById('roleChart');
+        if (roleCtx) {
+            new Chart(roleCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Admins', 'Users'],
+                    datasets: [{
+                        data: [adminCount, userCount],
+                        backgroundColor: ['#E91E9A', '#29A8E3'],
+                        borderWidth: 0,
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw}` } } }
+                }
+            });
+        }
+
+        // Analyses per user bar chart (top 8)
+        const userLabels = [{% for u in users[:8] %}'{{ u.username[:10] }}'{% if not loop.last %},{% endif %}{% endfor %}];
+        const userCounts = [{% for u in users[:8] %}{{ user_stats.get(u.id, 0) }}{% if not loop.last %},{% endif %}{% endfor %}];
+        const analysisCtx = document.getElementById('analysisChart');
+        if (analysisCtx) {
+            new Chart(analysisCtx, {
+                type: 'bar',
+                data: {
+                    labels: userLabels,
+                    datasets: [{
+                        label: 'Analyses',
+                        data: userCounts,
+                        backgroundColor: userLabels.map((_, i) => `hsl(${200 + i * 20}, 80%, 60%)`),
+                        borderRadius: 6,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } }, grid: { color: 'rgba(0,0,0,0.04)' } },
+                        x: { ticks: { font: { size: 11 } }, grid: { display: false } }
+                    }
+                }
+            });
+        }
+    });
+    </script>
+</body>
+</html>
